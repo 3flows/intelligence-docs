@@ -1,0 +1,61 @@
+.heroBanner {
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.section {
+  padding: 4rem 0;
+}
+
+.alt {
+  background: var(--ifm-color-emphasis-100);
+}
+
+.center {
+  text-align: center;
+}
+
+.journey {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.journeyItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 999px;
+  color: var(--ifm-font-color-base);
+}
+
+.journeyItem:hover {
+  text-decoration: none;
+  border-color: var(--ifm-color-primary);
+}
+
+.journeyStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--ifm-color-primary);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
