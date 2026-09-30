@@ -1,10 +1,10 @@
 ---
-title: 13. Read attachments
+title: 12. Documents as context
 ---
 
-# 13. Read attachments
+# 12. Documents as context
 
-**Where we are:** the assistant chats, and looks up orders.
+**Where we are:** the assistant chats and looks up orders. Everything it knows comes from the ticket.
 
 **The problem:** customers attach things: a delivery note, an error log from an e-bike display, a list of parts. The answer is often in there, and the model never sees it.
 
@@ -23,29 +23,30 @@ export const Ticket = t.object({
     attachments: t.array(Attachment).optional()
 });
 
+// What the model finds out lives under `triage`. Attachments live in blobs; the ticket keeps their names.
 export const StoredTicket = Ticket.omit({ attachments: true }).extend({
     id: t.string(),
-    attachments: t.array(t.string()),   // file names in blobs
-    status: t.enum(['new', 'triaged', 'triage-failed']),
-    triage: Triage.nullable()
+    attachments: t.array(t.string()),   // blobs: attachments/<ticket id>/<name>
+    triage: Triage
 });
 ```
 
 ```ts title="services.ts"
 // Platform handlers validate input but don't apply Zod defaults: default in code.
 handler('createTicket', Ticket, StoredTicket, async ({ attachments = [], ...ticket }, trigger) => {
-    const { doc, mq, blob } = trigger.context;
+    const { blob, doc } = trigger.context;
     const id = randomUUID();
 
     // highlight-start
+    // Files go into blobs first, so triage can read them.
     for (const { name, content } of attachments) {
         await blob().container('attachments').file(`${id}/${name}`).upload(Readable.from([Buffer.from(content)]));
     }
     // highlight-end
 
-    const stored: StoredTicket = { id, ...ticket, attachments: attachments.map((a) => a.name), status: 'new', triage: null };
+    const received = { id, ...ticket, attachments: attachments.map((a) => a.name) };
+    const stored: StoredTicket = { ...received, triage: await triage(trigger.context, received) };
     await doc().collection('tickets').by(id).set(stored);
-    await mq().queue('ticket-created').send({ id });
     await trigger.ok(stored);
 })
 ```
@@ -66,11 +67,12 @@ export function withAttachments<C extends { withBlob(container: string, path: st
 
 ```ts
 // in triage(): the extraction reads the attachments too
-withAttachments(ai.extract('facts').schema(Facts).with(text), ticket).ask('Extract the facts of this ticket.')
+withAttachments(ai.extract('facts').schema(Facts).with(text), ticket)
+    .ask('Extract the facts of this ticket.')
 
 // in assistant(): every turn sees them
-const assistant = (ticket: StoredTicket) => withAttachments(
-    Intelligence.conversations()
+const assistant = (context: Pick<IntelligenceContext, 'conversations'>, ticket: StoredTicket) => withAttachments(
+    context.conversations()
         .conversation(`ticket-${ticket.id}`)
         .prompt('support.chat', { shop: 'Velo' })
         .with({ subject: ticket.subject, body: ticket.body, triage: ticket.triage }),
@@ -95,7 +97,7 @@ The bundled providers don't accept images or PDFs in chat or extraction yet. A p
 ## Run it
 
 ```sh
-yarn step:13
+yarn step:12
 curl -X POST localhost:3000/createTicket -H 'Content-Type: application/json' -d '{
   "email": "ada@example.com",
   "subject": "Display error",
@@ -105,7 +107,20 @@ curl -X POST localhost:3000/createTicket -H 'Content-Type: application/json' -d 
 ```
 
 ```json
-{ "status": "triaged", "triage": { "summary": "E-bike display reports repeated error 503, a motor sensor timeout.", "department": "technical", … } }
+{ "attachments": ["display.log"], "triage": { "summary": "E-bike display reports repeated error 503, a motor sensor timeout.", "department": "technical", … } }
+```
+
+## Test it
+
+```ts title="step.test.ts"
+test('the extraction reads the attachment as text', async () => {
+    await post('http://127.0.0.1:3000/createTicket', ticket);
+
+    const facts = ScriptedAI.requests.find((r) => r.responseSchemaName === 'facts')!;
+    assert.deepEqual(facts.inputs?.[1], { type: 'text', text: log });
+});
+
+test('the chat sees the attachment on every turn', async () => { /* … */ });
 ```
 
 ## What you learned
@@ -120,4 +135,4 @@ curl -X POST localhost:3000/createTicket -H 'Content-Type: application/json' -d 
 
 Attachments are the least controlled input the desk has: anything a customer uploads reaches the model. That includes text crafted to steer it ("ignore your instructions…"). They're input, never instructions, and the tools the model has are read-only and scoped, so the worst case is a wrong answer, not a wrong action. Keep it that way.
 
-[Sample: step 13](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/13-attachments) · Next: [Embeddings](./embeddings.md)
+[Sample: step 12](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/12-documents-as-context) · Next: [Embeddings](./embeddings.md)

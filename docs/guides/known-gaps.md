@@ -6,6 +6,12 @@ title: Known gaps
 
 Intelligence is young, and the fluent API is ahead of some of its providers. This page lists what doesn't work yet, and how to work around it. Mention a workaround in the reviewer's view when you use one.
 
+## Previews in the samples
+
+**`inference()`, `conversations()` and `prompts()` in the trigger context.** The tutorial's intelligent services reach Intelligence through `trigger.context`. The library's `IntelligenceService` doesn't put these into the trigger context yet, and still requires the older `handle(signal)`. The samples carry a small base class and a typed `handler` in `_shared/intelligence-service.ts`. *Workaround elsewhere:* the static entry points, `Intelligence.inference()` and friends.
+
+**Evaluations.** There's no evaluation API in the library. The samples have a small harness (`_shared/evaluation.ts`, `_shared/triage-eval.ts`) built from the fluent API: datasets as JSON, reports as JSON, judges as `check` and `score`.
+
 ## Inputs
 
 **Images and PDFs in chat, extract and decisions.** The bundled providers accept text and JSON input only. Text files (`.txt`, `.md`, `.json`, `.csv`, …) are read and sent as text. Binary files are rejected with `AI … does not support file input for this operation`. *Workaround:* convert first, for example extract text from PDFs before calling `extract`, or use a custom provider with vision support.

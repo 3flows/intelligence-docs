@@ -1,8 +1,8 @@
 ---
-title: 14. Embeddings
+title: 13. Embeddings
 ---
 
-# 14. Embeddings
+# 13. Embeddings
 
 **Where we are:** an assistant that chats, looks up orders and reads attachments.
 
@@ -42,8 +42,8 @@ vectors:
 ### The help center service
 
 ```ts title="help-center.ts"
-import { Register, Service, handler, t } from '@3flows/platform';
-import { Intelligence } from '@3flows/intelligence';
+import { Register, t } from '@3flows/platform';
+import { IntelligenceContext, IntelligenceService, handler } from '../_shared/intelligence-service.js';
 
 export const Article = t.object({ id: t.string(), title: t.string(), body: t.string() });
 export type Article = t.infer<typeof Article>;
@@ -54,9 +54,9 @@ export type Passage = t.infer<typeof Passage>;
 export const SearchQuery = t.object({ query: t.string(), limit: t.number().optional() });
 
 // highlight-start
-/** The bridge between Intelligence and the platform's vector store. */
-export const embed = async (text: string): Promise<number[]> =>
-    (await Intelligence.inference().embedding().with(text).embed()).vector!;
+/** The bridge between Intelligence and the platform's vector store: text in, vector out. */
+export const embedder = (context: Pick<IntelligenceContext, 'inference'>) => async (text: string): Promise<number[]> =>
+    (await context.inference().embedding().with(text).embed()).vector!;
 // highlight-end
 
 /** One passage per paragraph, so every vector means one thing. */
@@ -70,7 +70,7 @@ export function passagesOf(article: Article): Passage[] {
 }
 
 @Register()
-export class HelpCenterService extends Service {
+export class HelpCenterService extends IntelligenceService {
     handlers = () => [
         handler('importArticles', t.object({ articles: t.array(Article) }), t.object({ passages: t.number() }), async ({ articles }, trigger) => {
             const passages = articles.flatMap(passagesOf);
@@ -81,7 +81,7 @@ export class HelpCenterService extends Service {
                     text: `${title}\n${text}`,
                     metadata: { articleId, title }
                 })))
-                .embedding(embed)
+                .embedding(embedder(trigger.context))
                 .put();
             // highlight-end
             await trigger.ok({ passages: passages.length });
@@ -91,22 +91,17 @@ export class HelpCenterService extends Service {
             // highlight-start
             const hits = await trigger.context.vector().index('help-center')
                 .query(query)
-                .embedding(embed)
+                .embedding(embedder(trigger.context))
                 .limit(limit)
                 .find();
             // highlight-end
-            await trigger.ok(hits.map((hit) => ({
-                id: hit.id,
-                articleId: hit.metadata?.articleId ?? '',
-                title: hit.metadata?.title ?? '',
-                text: hit.text
-            })));
+            await trigger.ok(hits.map(toPassage));
         })
     ];
 }
 ```
 
-- **`embed`** is the only line that touches Intelligence. The platform's `vectors` takes any embedding function; this one delegates to whatever AI has the `embedding` capability.
+- **`embedder(context)`** is the only line that touches Intelligence. The platform's `vectors` takes any embedding function; this one delegates to whatever AI has the `embedding` capability. `toPassage` maps a vector hit back to a `Passage`.
 - **Passages, not articles.** A vector summarizes its whole text. A paragraph about brake pads and one about warranty in one vector make both harder to find.
 - **The title goes into every passage**, so *"How long does it take?"* in the returns article is still about returns.
 
@@ -132,8 +127,8 @@ https:
 ## Run it
 
 ```sh
-yarn step:14
-curl -X POST localhost:3000/help-center/importArticles -H 'Content-Type: application/json' -d @steps/14-embeddings/articles.json
+yarn step:13
+curl -X POST localhost:3000/help-center/importArticles -H 'Content-Type: application/json' -d @steps/13-embeddings/articles.json
 curl -X POST localhost:3000/help-center/searchArticles -H 'Content-Type: application/json' -d '{"query":"how do I get my money back","limit":2}'
 ```
 
@@ -145,6 +140,23 @@ curl -X POST localhost:3000/help-center/searchArticles -H 'Content-Type: applica
 ```
 
 No keyword in common, found anyway.
+
+## Test it
+
+The scripted provider embeds with letter frequencies: crude, but deterministic. The test searches with a passage's own text and expects it first:
+
+```ts title="step.test.ts"
+test('imports the help center and finds passages by their vectors', async () => {
+    const { passages } = await post('http://127.0.0.1:3000/help-center/importArticles', { articles });
+    assert.equal(passages, 17);
+
+    const refund = 'Returns and refunds\nRefunds are paid to the original payment method within 14 days of us receiving the item.';
+    const hits = await post('http://127.0.0.1:3000/help-center/searchArticles', { query: refund, limit: 3 });
+    assert.equal(hits[0].id, 'returns#1');
+});
+```
+
+Whether search finds the right article for *real* questions is an evaluation question; chapter 18 measures it.
 
 ## Two rules to keep
 
@@ -163,4 +175,4 @@ No keyword in common, found anyway.
 
 Everything in the index can end up in an answer. Only public articles belong here; internal notes don't. And somebody has to own keeping it current.
 
-[Sample: step 14](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/14-embeddings) · Next: [Answer from the help center](./answer-from-the-help-center.md)
+[Sample: step 13](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/13-embeddings) · Next: [Answer from knowledge](./answer-from-knowledge.md)

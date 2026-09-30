@@ -19,8 +19,8 @@ An **embedding** turns a text into a vector, a list of a few hundred to a few th
 ```
 
 ```ts
-const { vector } = await Intelligence.inference().embedding().with('How do I get my money back?').embed();
-const { vectors } = await Intelligence.inference().embedding().with(['text one', 'text two']).embed();
+const { vector } = await trigger.context.inference().embedding().with('How do I get my money back?').embed();
+const { vectors } = await trigger.context.inference().embedding().with(['text one', 'text two']).embed();
 ```
 
 Embedding models are separate, small and cheap. Configure one next to your chat model; `embedding()` finds it by capability.
@@ -35,7 +35,7 @@ Two rules:
 Vectors go into a store that finds the nearest ones to a query vector. The platform has one: `vectors`, with `memory`, `redis` and `mongo` backends. It takes an embedding function, so Intelligence plugs straight in:
 
 ```ts
-const embed = async (text: string) => (await Intelligence.inference().embedding().with(text).embed()).vector!;
+const embed = async (text: string) => (await trigger.context.inference().embedding().with(text).embed()).vector!;
 
 // index
 await trigger.context.vector().index('help-center').documents(articles).embedding(embed).put();
@@ -55,7 +55,7 @@ vectors:
 Vector search is fast and approximate. A **reranker** is a model that reads the query and each candidate together, and scores how well the candidate answers the query. It's slower, so it runs on the few dozen results of the vector search, not on everything:
 
 ```ts
-const ranked = await Intelligence.inference()
+const ranked = await trigger.context.inference()
     .reranker()
     .query(question)
     .with(passages, { text: (p) => p.text, id: (p) => p.id })
@@ -70,7 +70,7 @@ Reranking is optional. Add it when the right passage is usually among the result
 ```ts
 const passages = await vector().index('help-center').query(question).embedding(embed).limit(5).find();
 
-const answer = await Intelligence.inference()
+const answer = await trigger.context.inference()
     .chat()
     .prompt('support.answer-from-articles')
     .with(passages.map(({ id, text }) => ({ id, text })))

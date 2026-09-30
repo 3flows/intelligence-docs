@@ -1,8 +1,8 @@
 ---
-title: 2. Prompts in YAML
+title: 3. Prompts as configuration
 ---
 
-# 2. Prompts in YAML
+# 3. Prompts as configuration
 
 **Where we are:** `draftReply` drafts replies with two lines of instructions in code.
 
@@ -32,20 +32,22 @@ prompts:
 The chain refers to it by name, with variables:
 
 ```ts title="services.ts"
-const replies = Intelligence.inference()
+const answer = await inference()
     .chat()
     // highlight-next-line
-    .prompt('support.reply', { shop: 'Velo' });
+    .prompt('support.reply', { shop: 'Velo' })
+    .with(ticket)
+    .ask('Draft a reply to this ticket.');
 ```
 
-The handler is unchanged: `replies.with(ticket).ask('Draft a reply to this ticket.')`.
+Input and question are unchanged. Only the policy moved.
 
 `{{ shop }}` is replaced by the variable. Dot paths like `{{ customer.name }}` work too; objects are inserted as JSON. Keep variables few: a variable that changes half the prompt should be a second prompt.
 
 ## Why this is better
 
 - **A prompt change is a reviewed change.** It has its own diff in YAML, and a reviewer reads it like a policy change.
-- **Every answer knows its prompt.** The prompt's name and version are recorded with each model call. When a reply is wrong, you can tell whether it came from `support.reply@v1` or `@v2`. Chapter 19 shows where.
+- **Every answer knows its prompt.** The prompt's name and version are recorded with each model call. When a reply is wrong, you can tell whether it came from `support.reply@v1` or `@v2`. In Part 5, evaluation reports list them; chapter 24 shows them per ticket.
 - **Policy lives in one place.** Prompts are listed where the models are listed. Non-developers can read them.
 
 Bump the `version` on every change.
@@ -67,7 +69,7 @@ prompts:
 ## Run it
 
 ```sh
-yarn step:02
+yarn step:03
 curl -X POST localhost:3000/draftReply -H 'Content-Type: application/json' -d '{
   "email": "ada@example.com",
   "subject": "Bremsen quietschen",
@@ -81,6 +83,24 @@ curl -X POST localhost:3000/draftReply -H 'Content-Type: application/json' -d '{
 
 *Answer in the language of the ticket* at work.
 
+## Test it
+
+```ts title="step.test.ts"
+test('renders the support.reply prompt with its variables into the instructions', async () => {
+    await post('http://127.0.0.1:3000/draftReply', ticket);
+
+    const [instructions] = ScriptedAI.requests[0].instructions as string[];
+    assert.match(instructions, /^You draft replies for the support team of Velo, a bike shop\./);
+    assert.doesNotMatch(instructions, /\{\{/);   // no variable left unrendered
+});
+
+test('records which prompt and version were used', async () => {
+    await post('http://127.0.0.1:3000/draftReply', ticket);
+
+    assert.deepEqual(ScriptedAI.requests[0].options?.metadata?.prompts, [{ name: 'support.reply', version: 'v1' }]);
+});
+```
+
 ## What you learned
 
 - **Prompts are configuration**: named, versioned, reviewed in YAML.
@@ -93,4 +113,4 @@ curl -X POST localhost:3000/draftReply -H 'Content-Type: application/json' -d '{
 
 The four rules are what to review. They're short, testable and complete enough that an agent reading a draft knows what to expect. The code change is one line.
 
-[Sample: step 02](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/02-prompts-in-yaml) · Next: [Test without a model](./test-without-a-model.md)
+[Sample: step 03](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/03-prompts-as-configuration) · Next: [Swap the model, test without one](./swap-and-test.md)

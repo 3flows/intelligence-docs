@@ -10,11 +10,11 @@ A model is [stateless](./models-for-developers.md#1-its-stateless). A conversati
 
 ```ts
 // One call. Nothing is remembered.
-await Intelligence.inference().chat().ask('My name is Ada.');
-await Intelligence.inference().chat().ask('What is my name?');   // doesn't know
+await trigger.context.inference().chat().ask('My name is Ada.');
+await trigger.context.inference().chat().ask('What is my name?');   // doesn't know
 
 // A conversation. The history is kept under the id.
-const conversation = Intelligence.conversations().conversation('ticket-42');
+const conversation = trigger.context.conversations().conversation('ticket-42');
 await conversation.ask('My name is Ada.');
 await conversation.ask('What is my name?');                      // "Ada"
 ```
@@ -88,7 +88,7 @@ Today, the history is sent in full. `conversation.clear()` removes it. For long-
 If the history lives in another system, like an email thread, you don't need a conversation. Pass it explicitly:
 
 ```ts
-await Intelligence.inference().chat().messages(threadAsMessages).ask('Draft the next reply.');
+await trigger.context.inference().chat().messages(threadAsMessages).ask('Draft the next reply.');
 ```
 
 ## Reviewer's view

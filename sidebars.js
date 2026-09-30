@@ -10,14 +10,14 @@ const sidebars = {
       items: [
         {
           type: 'category',
-          label: 'Part 1: Ask the model',
+          label: 'Part 1: Your first intelligent service',
           collapsed: false,
           items: [
             'tutorial/setup',
-            'tutorial/hello-model',
-            'tutorial/give-it-a-job',
-            'tutorial/prompts-in-yaml',
-            'tutorial/test-without-a-model'
+            'tutorial/intelligent-service',
+            'tutorial/anatomy-of-a-call',
+            'tutorial/prompts-as-configuration',
+            'tutorial/swap-and-test'
           ]
         },
         {
@@ -25,43 +25,55 @@ const sidebars = {
           label: 'Part 2: Turn language into data',
           collapsed: false,
           items: [
-            'tutorial/route-tickets',
-            'tutorial/tag-topics',
-            'tutorial/flag-urgent-tickets',
-            'tutorial/measure-frustration',
-            'tutorial/extract-a-triage-record',
-            'tutorial/triage-in-the-background'
+            'tutorial/choose',
+            'tutorial/judge',
+            'tutorial/extract',
+            'tutorial/meaning-and-action'
           ]
         },
         {
           type: 'category',
-          label: 'Part 3: Talk and act',
+          label: 'Part 3: Converse and act',
           collapsed: false,
           items: [
-            'tutorial/remember-the-conversation',
-            'tutorial/stream-the-answer',
-            'tutorial/let-it-look-things-up',
-            'tutorial/read-attachments'
+            'tutorial/remember',
+            'tutorial/stream',
+            'tutorial/act'
           ]
         },
         {
           type: 'category',
-          label: 'Part 4: Answer from knowledge',
+          label: 'Part 4: Give it knowledge',
           collapsed: false,
           items: [
+            'tutorial/documents-as-context',
             'tutorial/embeddings',
-            'tutorial/answer-from-the-help-center',
+            'tutorial/answer-from-knowledge',
             'tutorial/rerank'
           ]
         },
         {
           type: 'category',
-          label: 'Part 5: Operate it',
+          label: 'Part 5: Quality and guardrails',
+          collapsed: false,
+          items: [
+            'tutorial/measure',
+            'tutorial/improve-with-evidence',
+            'tutorial/judge-the-answers',
+            'tutorial/guard-the-input',
+            'tutorial/guard-the-output',
+            'tutorial/humans-in-the-loop'
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Part 6: Run it in production',
           collapsed: false,
           items: [
             'tutorial/the-right-model-for-each-job',
-            'tutorial/guardrails',
-            'tutorial/see-what-the-model-did'
+            'tutorial/dont-block',
+            'tutorial/see-what-it-did',
+            'tutorial/going-live'
           ]
         },
         'tutorial/whats-next'

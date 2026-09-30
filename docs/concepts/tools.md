@@ -28,7 +28,7 @@ The model never runs anything. It **requests** a call; Intelligence runs it, sen
 On the platform, your application logic already lives in service handlers, with names, descriptions and input schemas. That's everything a model needs to know about a tool. So a handler becomes a tool with one line:
 
 ```ts
-await Intelligence.inference()
+await trigger.context.inference()
     .chat()
     .service('OrdersService', 'lookupOrder')
     .ask('Where is my order A-1042?');

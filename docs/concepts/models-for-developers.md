@@ -22,8 +22,8 @@ A model remembers nothing between calls. If it "remembers" what the customer sai
 
 That's why Intelligence separates:
 
-- `Intelligence.inference().chat()` is **one call**. Nothing is remembered.
-- `Intelligence.conversations().conversation(id)` **stores the history** and sends it with every turn.
+- `trigger.context.inference().chat()` is **one call**. Nothing is remembered.
+- `trigger.context.conversations().conversation(id)` **stores the history** and sends it with every turn.
 
 Memory is a feature of your application, not of the model. You decide what's kept, where, and for how long. See [Conversations](./conversations.md).
 
@@ -56,10 +56,10 @@ Tokens matter for three reasons:
 | | What it means for you |
 |---|---|
 | **Cost** | Providers charge per token, separately for input (what you send) and output (what comes back). Long context in every call adds up. |
-| **Latency** | Output tokens are generated one after another. A long answer takes longer. [Streaming](../tutorial/stream-the-answer.md) shows them as they come. |
+| **Latency** | Output tokens are generated one after another. A long answer takes longer. [Streaming](../tutorial/stream.md) shows them as they come. |
 | **Limits** | Every model has a **context window**: the maximum number of tokens it can see at once. Instructions, history, documents and the answer all have to fit. |
 
-Every response carries `usage` with `promptTokens`, `completionTokens` and `totalTokens`. With the conversations ontology enabled, every call is also recorded as an `AIInferenceRun`. See [See what the model did](../tutorial/see-what-the-model-did.md).
+Every response carries `usage` with `promptTokens`, `completionTokens` and `totalTokens`. With the conversations ontology enabled, every call is also recorded as an `AIInferenceRun`. See [See what it did](../tutorial/see-what-it-did.md).
 
 ## What a model is good at, and what it isn't
 

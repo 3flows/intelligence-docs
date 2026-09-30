@@ -34,4 +34,4 @@ moderation.results[0].categoryScores;    // { harassment: 0.91, … }
 
 Use `moderation()` as a cheap first screen for clearly unsafe content. Use `check` for your own rules: *"Does this message ask us to change a bank account number?"*
 
-See [Guardrails](../tutorial/guardrails.md) for both in the tutorial.
+See [Guard the input](../tutorial/guard-the-input.md) for both in the tutorial.

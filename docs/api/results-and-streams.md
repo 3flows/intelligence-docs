@@ -26,7 +26,7 @@ Returned by `chat().ask(...)` and `conversation(id).ask(...)`.
 { promptTokens?: number; completionTokens?: number; totalTokens?: number }
 ```
 
-On every response that the provider reports usage for. With the tool loop, `usage` covers the last call only; the `AIInferenceRun` entities have every call. See [See what the model did](../tutorial/see-what-the-model-did.md).
+On every response that the provider reports usage for. With the tool loop, `usage` covers the last call only; the `AIInferenceRun` entities have every call. See [See what it did](../tutorial/see-what-it-did.md).
 
 ## Decisions
 
@@ -68,4 +68,4 @@ for await (const event of events) {
 
 ### Streaming over HTTP
 
-A platform handler answers once. To show tokens as they arrive, forward the events from an HTTP route as server-sent events, or collect them and answer at the end. See [Stream the answer](../tutorial/stream-the-answer.md).
+A platform handler answers once. To show tokens as they arrive, forward the events from an HTTP route as server-sent events, or collect them and answer at the end. See [Stream](../tutorial/stream.md).

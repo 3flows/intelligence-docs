@@ -1,8 +1,8 @@
 ---
-title: 12. Let it look things up
+title: 11. Act
 ---
 
-# 12. Let it look things up
+# 11. Act
 
 **Where we are:** customers chat with an assistant that knows their ticket.
 
@@ -47,7 +47,7 @@ export class OrdersService extends Service {
 A handler becomes a tool with one line:
 
 ```ts
-assistant(ticket).service('OrdersService', 'lookupOrder').ask(message);
+assistant(trigger.context, ticket).service('OrdersService', 'lookupOrder').ask(message);
 ```
 
 The model gets `OrdersService_lookupOrder` with the handler's description and input schema, and calls go through the platform's service calls, locally or to another process. For tools that are safe with any input (search the help center, list opening hours) that's all you need.
@@ -56,7 +56,7 @@ But `lookupOrder` takes an `email`, and the model fills in **every** argument. A
 
 ### A scoped tool
 
-So we give the model a tool with only the argument it should choose, and fill in the rest ourselves, from the ticket:
+So we give the model a tool with only the argument it should choose, and fill in the rest ourselves, from the ticket. The call itself goes through the trigger context's `service(...)`, like any service-to-service call:
 
 ```ts title="services.ts"
 import { TriggerContext } from '@3flows/platform';
@@ -83,7 +83,7 @@ const ordersOf = (ticket: StoredTicket, context: TriggerContext): InferenceTool 
 ```ts title="services.ts"
 handler('chat', ChatMessage, ChatAnswer, async ({ ticketId, message }, trigger) => {
     const ticket = await trigger.context.doc().collection('tickets').by(ticketId).get<StoredTicket>();
-    const answer = await assistant(ticket)
+    const answer = await assistant(trigger.context, ticket)
         // highlight-next-line
         .tools(ordersOf(ticket, trigger.context))
         .ask(message);
@@ -123,7 +123,7 @@ prompts:
 ## Run it
 
 ```sh
-yarn step:12
+yarn step:11
 curl -X POST localhost:3000/orders/seedOrders
 curl -X POST localhost:3000/chat -H 'Content-Type: application/json' \
   -d '{"ticketId":"5f0c…","message":"Where is my order A-1042?"}'
@@ -135,7 +135,7 @@ curl -X POST localhost:3000/chat -H 'Content-Type: application/json' \
 
 Behind the answer are two model calls: the first requests `lookupOrder({ number: 'A-1042' })`, the second gets the question, the tool call and the order, and writes the answer. The tool call and its result become part of the conversation's history, so a later *"and when did it ship?"* needs no second lookup. With the entity store, the call is recorded as an `AIConversationToolCall` with its arguments, status and latency.
 
-## Testing the loop
+## Test it
 
 The scripted model can request a tool, too:
 
@@ -163,4 +163,4 @@ assert.equal(ScriptedAI.requests[1].messages.at(-1)?.content, 'null');
 
 Read `.tools(...)` and `.service(...)` as the permission list: this is everything the model can do. For each tool, ask *what's the worst input the model could pass?* Here: another order number, which returns `null`. Read-only tools with scoped input are low risk. A tool that writes (refunds, cancellations) deserves a much harder look; see [Tools and responsibility](../concepts/tools.md#tools-and-responsibility).
 
-[Sample: step 12](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/12-tools) · Next: [Read attachments](./read-attachments.md)
+[Sample: step 11](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/11-act) · Next: [Documents as context](./documents-as-context.md)

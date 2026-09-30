@@ -25,7 +25,7 @@ Every one of these is an ordinary feature of an ordinary service. What's differe
 **A fluent API.** Every capability follows the same grammar: *what* you want, *with what* input, then a terminal verb.
 
 ```ts
-const ai = Intelligence.inference();
+const ai = trigger.context.inference();
 
 await ai.chat().instructions('You are a support agent.').with(ticket).ask('Draft a reply.');
 await ai.choice('department').oneOf(['billing', 'technical']).with(ticket.body).ask('Who handles this?');
@@ -80,7 +80,7 @@ A reviewer needs to answer these questions in one read. That's what the vocabula
 The fluent API is written for the human who has to understand and approve the feature.
 
 ```ts
-await Intelligence.conversations()
+await trigger.context.conversations()
     .conversation(ticket.id)
     .prompt('support.reply', { customer })
     .service('OrdersService', 'lookupOrder')
@@ -99,4 +99,4 @@ So when someone asks *"why did the assistant say that?"* or *"what did this cost
 
 We still need this layer. Not because calling a model is hard, but because owning an AI feature in production is.
 
-**See it for yourself:** the [tutorial](./tutorial/index.md) builds a support desk from a first question to an assistant that routes tickets, looks up orders and answers from the help center, one small step at a time. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).
+**See it for yourself:** the [tutorial](./tutorial/index.md) builds a support desk in six parts: from a first question to an assistant that routes tickets, looks up orders and answers from the help center, then measures its own quality, guards its input and output, and runs in production. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).

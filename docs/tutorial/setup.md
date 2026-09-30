@@ -5,7 +5,7 @@ sidebar_label: Set up a project
 
 # Set up a project
 
-**Goal:** an empty project that starts the platform with Intelligence. Chapter 0 then asks the first question.
+**Goal:** an empty project that starts the platform with Intelligence. Chapter 1 then adds the first intelligent service.
 
 If you only want to run the tutorial's samples, skip to [The samples](./index.md#the-samples). This page is for starting your own project.
 
@@ -87,7 +87,7 @@ ais:
       apiKey: ${{ OPENAI_API_KEY }}
 ```
 
-It's the platform's YAML, with one new section. `ais` lists the models the application may use; [chapter 0](./hello-model.md) explains it. We call the file `intelligence.yml` to tell it apart from plain platform projects; the name doesn't matter.
+It's the platform's YAML, with one new section. `ais` lists the models the application may use; [chapter 1](./intelligent-service.md) explains it. We call the file `intelligence.yml` to tell it apart from plain platform projects; the name doesn't matter.
 
 ### `main.ts`
 
@@ -102,6 +102,16 @@ await Intelligence.run('./intelligence.yml');
 `Intelligence.run` starts the platform with the Intelligence sections (`ais`, `prompts`, `conversations`, `tracers`) registered. It's `Platform.run` plus a `ready` line in the log.
 
 The starter also has `main.test.ts`, which starts the platform and checks `/health` and the configured model. `yarn test` runs it, with no key needed.
+
+### `intelligence-service.ts`
+
+The base class for intelligent services, and a matching `handler`. It puts `inference()`, `conversations()` and `prompts()` into the trigger context, next to the platform's `doc()`, `mq()` and `service()`:
+
+```ts
+const { inference, doc } = trigger.context;
+```
+
+This file is a **preview** of a change proposed for `@3flows/intelligence`. Until the library ships it, the starter and the samples carry it. Afterwards, `import { IntelligenceService, handler } from '@3flows/intelligence'` replaces the local import, and the file goes away.
 
 ## Run it
 
@@ -120,7 +130,7 @@ curl localhost:3000/health
 OK
 ```
 
-The model is configured, and nothing asks it anything yet. That's [chapter 0](./hello-model.md).
+The model is configured, and nothing asks it anything yet. That's [chapter 1](./intelligent-service.md).
 
 ## When something goes wrong
 
@@ -147,4 +157,4 @@ To try an unreleased change, link local checkouts instead of the registry versio
 
 Run `yarn build` in the linked project after every change. Link both, so there's exactly one copy of the platform. Switch back to `"next"` before you commit.
 
-Next: [Hello, model](./hello-model.md)
+Next: [An intelligent service](./intelligent-service.md)

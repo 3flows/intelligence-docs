@@ -41,7 +41,7 @@ ais:
 Modalities combine by passing results along. A voicemail becomes a ticket in three lines:
 
 ```ts
-const ai = Intelligence.inference();
+const ai = trigger.context.inference();
 
 const { text } = await ai.transcriber().withBlob('voicemails', `${id}.mp3`).language('en').transcribe();
 const department = await ai.choice('department').oneOf(['billing', 'technical', 'sales']).with(text).ask('Which team?');

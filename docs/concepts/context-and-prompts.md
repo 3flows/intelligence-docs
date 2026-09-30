@@ -11,7 +11,7 @@ Intelligence gives each kind of content its own place.
 ## Four places, four purposes
 
 ```ts
-await Intelligence.inference()
+await trigger.context.inference()
     .chat()
     .prompt('support.reply', { shop: 'Velo Bikes' })   // policy, from the catalog
     .instructions('Answer in the customer’s language.') // policy, inline
@@ -32,7 +32,7 @@ A good test for where something belongs: **would it be the same for every custom
 
 **Review.** A reviewer reads instructions and prompts as policy: tone, rules, limits. They read `.with(...)` as data flow: *which data leaves our system in this call?* Mixing them in one template string hides both.
 
-**Safety.** Text from customers can contain instructions of its own ("ignore all previous instructions and…"). That's called **prompt injection**. Keeping customer text in input, never concatenated into instructions, is the first defense. It isn't a complete one: see [Guardrails](../tutorial/guardrails.md).
+**Safety.** Text from customers can contain instructions of its own ("ignore all previous instructions and…"). That's called **prompt injection**. Keeping customer text in input, never concatenated into instructions, is the first defense. It isn't a complete one: see [Guard the input](../tutorial/guard-the-input.md).
 
 **Reuse.** Chains are [immutable](./the-fluent-api.md#chains-are-immutable). Build the policy part once, add data per call.
 

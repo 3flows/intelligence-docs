@@ -5,11 +5,21 @@ sidebar_label: Overview
 
 # Fluent API overview
 
-Everything is imported from one package:
+In an intelligent service, the entry points are in the trigger context:
+
+```ts
+const { inference, conversations, prompts } = trigger.context;
+```
+
+Outside a service (scripts, evaluations, tests), they're static on `Intelligence`:
 
 ```ts
 import { Intelligence } from '@3flows/intelligence';
+
+Intelligence.inference();   // the same as trigger.context.inference()
 ```
+
+The examples below use `Intelligence.inference()`; inside a service, read it as `trigger.context.inference()`.
 
 The grammar and the reasoning behind it are explained in [The fluent API](../concepts/the-fluent-api.md). This section is the reference.
 

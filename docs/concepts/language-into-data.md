@@ -19,7 +19,7 @@ Intelligence has four capabilities for that. Each returns a typed value, and mos
 | several fields at once | `extract(name).schema(zod)` | an object of your schema's type |
 
 ```ts
-const ai = Intelligence.inference();
+const ai = trigger.context.inference();
 
 const department = await ai.choice('department').oneOf(['billing', 'technical', 'sales']).with(body).ask('Which team?');
 const topics     = await ai.choice('topics').manyOf(['refund', 'delivery', 'defect', 'invoice']).with(body).ask('Which topics?');

@@ -1,8 +1,8 @@
 ---
-title: 16. Rerank
+title: 15. Rerank
 ---
 
-# 16. Rerank
+# 15. Rerank
 
 **Where we are:** every chat turn retrieves four help center passages.
 
@@ -20,14 +20,14 @@ handler('searchArticles', SearchQuery, t.array(Passage), async ({ query, limit =
     // Retrieve many, fast and approximate ...
     const candidates = await trigger.context.vector().index('help-center')
         .query(query)
-        .embedding(embed)
+        .embedding(embedder(trigger.context))
         // highlight-next-line
         .limit(limit * 3)
         .find();
     if (!candidates.length) return trigger.ok([]);   // nothing to rank: the reranker rejects an empty list
 
     // highlight-start
-    const ranked = await Intelligence.inference()
+    const ranked = await trigger.context.inference()
         .reranker()
         .query(query)
         .with(candidates, { text: (candidate) => candidate.text, id: (candidate) => candidate.id })
@@ -64,8 +64,8 @@ The model name contains `rerank`, so Intelligence infers the capability. The cha
 
 ```sh
 export JINA_API_KEY=<your key>
-yarn step:16
-curl -X POST localhost:3000/help-center/importArticles -H 'Content-Type: application/json' -d @steps/16-rerank/articles.json
+yarn step:15
+curl -X POST localhost:3000/help-center/importArticles -H 'Content-Type: application/json' -d @steps/15-rerank/articles.json
 curl -X POST localhost:3000/help-center/searchArticles -H 'Content-Type: application/json' \
   -d '{"query":"my e-bike battery drains fast in winter","limit":2}'
 ```
@@ -77,9 +77,24 @@ curl -X POST localhost:3000/help-center/searchArticles -H 'Content-Type: applica
 ]
 ```
 
+## Test it
+
+The scripted reranker ranks by shared words, which makes the order predictable:
+
+```ts title="step.test.ts"
+test('the reranker decides the order of the candidates', async () => {
+    const hits = await post('http://127.0.0.1:3000/help-center/searchArticles', {
+        query: 'battery range below 5 °C in winter: store and charge indoors',
+        limit: 2
+    });
+
+    assert.equal(hits[0].id, 'battery#2');
+});
+```
+
 ## Is it worth it?
 
-A reranker adds a call, some latency and some cost per turn. Add it when you can see the problem: the right passage is usually among the candidates, but not at the top. Measure with a small set of real questions and the passage a human would pick. If vector search already puts it first, skip the reranker.
+A reranker adds a call, some latency and some cost per turn. Add it when you can see the problem: the right passage is usually among the candidates, but not at the top. The evaluation in [chapter 18](./judge-the-answers.md) measures retrieval; if vector search already finds the right article, skip the reranker.
 
 ## What you learned
 
@@ -93,4 +108,4 @@ A reranker adds a call, some latency and some cost per turn. Add it when you can
 
 A third provider now receives customer questions: Jina. That's a data-processing question for the reviewer, visible in one YAML entry.
 
-[Sample: step 16](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/16-rerank) · Next: [The right model for each job](./the-right-model-for-each-job.md)
+[Sample: step 15](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/15-rerank) · Next: [Measure before you improve](./measure.md)

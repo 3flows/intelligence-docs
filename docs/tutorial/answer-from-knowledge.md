@@ -1,8 +1,8 @@
 ---
-title: 15. Answer from the help center
+title: 14. Answer from knowledge
 ---
 
-# 15. Answer from the help center
+# 14. Answer from knowledge
 
 **Where we are:** the help center is searchable by meaning.
 
@@ -31,7 +31,7 @@ handler('chat', ChatMessage, ChatAnswer, async ({ ticketId, message }, trigger) 
     // highlight-next-line
     const articles = await helpCenter(trigger.context, message);
 
-    const answer = await assistant(ticket)
+    const answer = await assistant(trigger.context, ticket)
         .tools(ordersOf(ticket, trigger.context))
         // highlight-next-line
         .with({ articles })
@@ -41,7 +41,7 @@ handler('chat', ChatMessage, ChatAnswer, async ({ ticketId, message }, trigger) 
 })
 ```
 
-The assistant calls the help center like any other service. The passages go in with `with(...)`: they're context for this turn, not history. The streaming route does the same: `assistant(ticket).with({ articles }).stream(message)`.
+The assistant calls the help center like any other service. The passages go in with `with(...)`: they're context for this turn, not history. The streaming route does the same: `assistant(context, ticket).with({ articles }).stream(message)`.
 
 The part that makes it trustworthy is in the prompt:
 
@@ -66,8 +66,8 @@ prompts:
 ## Run it
 
 ```sh
-yarn step:15
-curl -X POST localhost:3000/help-center/importArticles -H 'Content-Type: application/json' -d @steps/15-rag/articles.json
+yarn step:14
+curl -X POST localhost:3000/help-center/importArticles -H 'Content-Type: application/json' -d @steps/14-rag/articles.json
 curl -X POST localhost:3000/chat -H 'Content-Type: application/json' \
   -d '{"ticketId":"5f0c…","message":"Can I still return the helmet? I bought it five weeks ago."}'
 ```
@@ -80,6 +80,19 @@ curl -X POST localhost:3000/chat -H 'Content-Type: application/json' \
 ```
 
 `sources` goes back to the chat page, which can link the articles. A reader can check the answer against them.
+
+## Test it
+
+```ts title="step.test.ts"
+test('retrieves passages, sends them as context, and returns them as sources', async () => {
+    ScriptedAI.reset(() => 'According to “Returns and refunds”, you can return unused items within 30 days.');
+
+    const { sources } = await post('http://127.0.0.1:3000/chat', { ticketId: id, message: question });
+
+    const context = ScriptedAI.requests[0].inputs?.find((i) => i.type === 'json' && 'articles' in (i.value as object)) as any;
+    assert.deepEqual(context.value.articles.map((a: any) => a.id), sources);
+});
+```
 
 ## Retrieval or tools?
 
@@ -103,6 +116,6 @@ Retrieval runs on every turn, even for *"thanks!"*. That's four passages of toke
 
 > Every chat turn retrieves four help center passages and instructs the model to answer policy questions only from them.
 
-Check two things: the prompt's rule for *"the articles don't answer it"* (here: hand over to a colleague, never guess), and the test that asserts the passages actually reach the model. A RAG feature whose retrieval silently returns nothing looks exactly like one that works, until it makes something up.
+Check two things: the prompt's rule for *"the articles don't answer it"* (here: hand over to a colleague, never guess), and the test that asserts the passages actually reach the model. A RAG feature whose retrieval silently returns nothing looks exactly like one that works, until it makes something up. Whether the answers are actually *grounded* is measured in [chapter 18](./judge-the-answers.md).
 
-[Sample: step 15](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/15-rag) · Next: [Rerank](./rerank.md)
+[Sample: step 14](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/14-rag) · Next: [Rerank](./rerank.md)

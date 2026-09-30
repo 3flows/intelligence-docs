@@ -33,7 +33,7 @@ The tutorial's tests use a scripted provider for exactly this. See [Testing](../
 - run through `choice('department')`,
 - and counted: how many match?
 
-Run them when you change a prompt, a model or a provider. A model change without an evaluation is an untested change.
+Run them when you change a prompt, a model or a provider. A model change without an evaluation is an untested change. The tutorial's [Part 5](../tutorial/measure.md) builds evaluations for triage and for answers, and uses them to improve both.
 
 ## Humans in the loop
 
@@ -46,7 +46,7 @@ Not every decision should be automatic. A few shapes, from lightest to strongest
 
 ## Guardrails
 
-- **Moderation** screens content against safety categories before it reaches the model or the customer. See [Guardrails](../tutorial/guardrails.md).
+- **Moderation** screens content against safety categories before it reaches the model or the customer. See [Guard the input](../tutorial/guard-the-input.md).
 - **Keep customer text in input.** Never concatenate it into instructions. See [Context and prompts](./context-and-prompts.md#why-keep-policy-and-data-apart).
 - **Scope tools to the caller.** A tool must check permissions itself; the model passes whatever the user typed.
 - **Validate decisions like input.** A `choice` is always one of its options; a free-text answer used as an id is not.

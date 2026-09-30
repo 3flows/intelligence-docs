@@ -146,7 +146,7 @@ import { ScriptedAI } from '../_shared/scripted-ai.js';
 import './services.js';
 
 describe('ticket routing', () => {
-    before(() => runOffline('./steps/04-route-tickets/intelligence.yml'));
+    before(() => runOffline('./steps/05-choose/intelligence.yml'));
     after(() => Platform.shutdown());
     beforeEach(() => ScriptedAI.reset());
 
@@ -157,7 +157,7 @@ describe('ticket routing', () => {
 
         const ticket = await post('http://127.0.0.1:3000/createTicket', { email: 'ada@example.com', subject: 'Charged twice', body: 'I was charged twice.' });
 
-        assert.equal(ticket.department, 'billing');
+        assert.equal(ticket.triage.department, 'billing');
     });
 
     test('sends the ticket body to the model, not into the instructions', async () => {
@@ -184,10 +184,10 @@ describe('ticket routing', () => {
 - the unexpected answer: `other`, an empty `manyOf`, a `null` field in an extraction,
 - low confidence, if your code branches on it,
 - a failing call: `ScriptedAI.reset(() => { throw new Error('rate limited'); })`,
-- a tool call: return `{ text: '', toolCalls: [{ id: 'c1', name: 'lookupOrder', arguments: { number: 'A-1042' } }] }` while the last message isn't a `tool` message, then check the tool result the second round received and the final text. See step 12 of the samples.
+- a tool call: return `{ text: '', toolCalls: [{ id: 'c1', name: 'lookupOrder', arguments: { number: 'A-1042' } }] }` while the last message isn't a `tool` message, then check the tool result the second round received and the final text. See step 11 of the samples.
 
 Recognizing the call in a script: `request.responseSchemaName` is the decision or extraction name (`'department'`, `'urgent'`, `'facts'`); `request.tools` is set when tools are attached; `request.messages.at(-1)?.role === 'tool'` means a tool result has just arrived; `request.ai` says which AI was selected. The samples have a small helper, `triageScript(answers)`, that answers every triage question by name.
 
 ## What not to assert
 
-The *wording* of an answer from a real model. If a test needs a real model, it's an evaluation: keep it out of `yarn test`, and run it deliberately.
+The *wording* of an answer from a real model. If a test needs a real model, it's an evaluation: keep it out of `yarn test`, and run it deliberately. Part 5 of the tutorial builds one, starting with [Measure before you improve](../tutorial/measure.md).

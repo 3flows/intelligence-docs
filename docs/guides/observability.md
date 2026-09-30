@@ -74,7 +74,7 @@ import { InferenceRunEntity } from '@3flows/intelligence';
 const failed = await InferenceRunEntity.find({ status: 'failed' }).all();
 ```
 
-Conversations and turns carry running token totals too (`AIConversation.totalTokens`, `AIConversationTurn.totalTokens`), and the `metadata` you set on chains is queryable, so *"what did this ticket cost?"* is one query. See [See what the model did](../tutorial/see-what-the-model-did.md).
+Conversations and turns carry running token totals too (`AIConversation.totalTokens`, `AIConversationTurn.totalTokens`), and the `metadata` you set on chains is queryable, so *"what did this ticket cost?"* is one query. See [See what it did](../tutorial/see-what-it-did.md).
 
 Recording never fails a call: if storing a run fails, the answer is still returned.
 

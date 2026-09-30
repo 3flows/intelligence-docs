@@ -6,10 +6,10 @@ import Link from '@docusaurus/Link';
 import styles from './index.module.css';
 
 const serviceCode = `@Register()
-export class TicketsService extends Service {
+export class TicketsService extends IntelligenceService {
     handlers = () => [
         handler('triage', Ticket, Triage, async (ticket, trigger) => {
-            const ai = Intelligence.inference();
+            const ai = trigger.context.inference();
 
             const department = await ai.choice('department')
                 .oneOf(['billing', 'technical', 'sales'])
@@ -64,18 +64,19 @@ const points = [
 
 const journey = [
   { step: '·', label: 'Set up', to: '/docs/tutorial/setup' },
-  { step: '0', label: 'Hello, model', to: '/docs/tutorial/hello-model' },
-  { step: '2', label: 'Prompts', to: '/docs/tutorial/prompts-in-yaml' },
-  { step: '3', label: 'Offline tests', to: '/docs/tutorial/test-without-a-model' },
-  { step: '4', label: 'Choice', to: '/docs/tutorial/route-tickets' },
-  { step: '7', label: 'Score', to: '/docs/tutorial/measure-frustration' },
-  { step: '8', label: 'Extract', to: '/docs/tutorial/extract-a-triage-record' },
-  { step: '10', label: 'Conversations', to: '/docs/tutorial/remember-the-conversation' },
-  { step: '12', label: 'Tools', to: '/docs/tutorial/let-it-look-things-up' },
-  { step: '14', label: 'Embeddings', to: '/docs/tutorial/embeddings' },
-  { step: '15', label: 'RAG', to: '/docs/tutorial/answer-from-the-help-center' },
-  { step: '17', label: 'Many models', to: '/docs/tutorial/the-right-model-for-each-job' },
-  { step: '19', label: 'Observability', to: '/docs/tutorial/see-what-the-model-did' }
+  { step: '1', label: 'Intelligent service', to: '/docs/tutorial/intelligent-service' },
+  { step: '3', label: 'Prompts', to: '/docs/tutorial/prompts-as-configuration' },
+  { step: '4', label: 'Swap & test', to: '/docs/tutorial/swap-and-test' },
+  { step: '5', label: 'Choose', to: '/docs/tutorial/choose' },
+  { step: '7', label: 'Extract', to: '/docs/tutorial/extract' },
+  { step: '9', label: 'Conversations', to: '/docs/tutorial/remember' },
+  { step: '11', label: 'Tools', to: '/docs/tutorial/act' },
+  { step: '14', label: 'RAG', to: '/docs/tutorial/answer-from-knowledge' },
+  { step: '16', label: 'Evaluate', to: '/docs/tutorial/measure' },
+  { step: '18', label: 'Judges', to: '/docs/tutorial/judge-the-answers' },
+  { step: '19', label: 'Guardrails', to: '/docs/tutorial/guard-the-input' },
+  { step: '22', label: 'Many models', to: '/docs/tutorial/the-right-model-for-each-job' },
+  { step: '24', label: 'Observability', to: '/docs/tutorial/see-what-it-did' }
 ];
 
 function Hero() {
@@ -138,9 +139,9 @@ export default function Home() {
 
         <section className={styles.section}>
           <div className="container">
-            <Heading as="h2" className={styles.center}>From a first question to an assistant that knows your help center</Heading>
+            <Heading as="h2" className={styles.center}>From a first question to an assistant you can measure, guard and operate</Heading>
             <p className={styles.center}>
-              One small support desk, one new concept per chapter. Built on the 3flows Platform, so storage, queues and HTTP are already solved.
+              One small support desk in six parts, one new concept per chapter. Built on the 3flows Platform, so storage, queues and HTTP are already solved.
             </p>
             <div className={styles.journey}>
               {journey.map(({ step, label, to }) => (

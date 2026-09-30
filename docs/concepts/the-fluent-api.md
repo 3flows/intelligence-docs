@@ -7,7 +7,7 @@ title: The fluent API
 Every capability in Intelligence reads the same way: **start with what you want, add what it needs, finish with a verb.**
 
 ```ts
-Intelligence.inference()
+trigger.context.inference()
     .choice('department')                        // 1. the capability
     .oneOf(['billing', 'technical', 'sales'])    // 2. capability-specific shape
     .model('fast')                               // 3. optional: which AI
@@ -18,19 +18,25 @@ Intelligence.inference()
 
 Once you can read one chain, you can read all of them.
 
-## Three entry points
+## Three entry points, in the trigger context
+
+An **intelligent service** (a service that extends `IntelligenceService`) finds three more members in its trigger context, next to the platform's `doc()`, `mq()`, `blob()` and `service()`:
 
 | Entry point | For |
 |---|---|
-| `Intelligence.inference()` | Every stateless capability: `chat`, `extract`, `choice`, `check`, `score`, `embedding`, `reranker`, `transcriber`, `speech`, `image`, `video`, `ocr`, `moderation` |
-| `Intelligence.conversations()` | Stateful chat: `.conversation(id)` remembers the history |
-| `Intelligence.prompts()` | The prompt catalog from YAML: `has`, `get`, `render` |
-
-Import them from the package, like everything else:
+| `inference()` | Every stateless capability: `chat`, `extract`, `choice`, `check`, `score`, `embedding`, `reranker`, `transcriber`, `speech`, `image`, `video`, `ocr`, `moderation` |
+| `conversations()` | Stateful chat: `.conversation(id)` remembers the history |
+| `prompts()` | The prompt catalog from YAML: `has`, `get`, `render` |
 
 ```ts
-import { Intelligence } from '@3flows/intelligence';
+const { inference, conversations, doc } = trigger.context;
 ```
+
+One context, one vocabulary: the model is reached like the database. Outside a service (in scripts, evaluations and tests), the same entry points are static: `Intelligence.inference()`, `Intelligence.conversations()`, `Intelligence.prompts()`.
+
+:::note Preview
+Putting `inference()`, `conversations()` and `prompts()` into the trigger context is a change proposed for `@3flows/intelligence`. Until it ships, the [samples](https://github.com/3flows/intelligence-samples) carry it in `_shared/intelligence-service.ts`. The static entry points work today.
+:::
 
 ## The shared vocabulary
 
@@ -74,7 +80,7 @@ A chain does nothing until its terminal verb. The verb says what kind of answer 
 Every method returns a **new** chain. The one you called it on is unchanged. That makes chains safe to build once and reuse:
 
 ```ts
-const support = Intelligence.inference()
+const support = inference()
     .chat()
     .prompt('support.reply')
     .options({ temperature: 0.3 });
@@ -95,16 +101,22 @@ A shared chain carries **configuration**, never history. History is what [conver
 Use the fluent API from handlers and routes like any other platform primitive:
 
 ```ts
-handler('triage', Ticket, Triage, async (ticket, trigger) => {
-    const department = await Intelligence.inference()
-        .choice('department')
-        .oneOf(['billing', 'technical', 'sales'])
-        .with(ticket.body)
-        .ask('Which team should handle this ticket?');
+@Register()
+export class TicketsService extends IntelligenceService {
+    handlers = () => [
+        handler('triage', Ticket, Triage, async (ticket, trigger) => {
+            const { inference, doc } = trigger.context;
+            const department = await inference()
+                .choice('department')
+                .oneOf(['billing', 'technical', 'sales'])
+                .with(ticket.body)
+                .ask('Which team should handle this ticket?');
 
-    await trigger.context.doc().collection('tickets').by(ticket.id).set({ ...ticket, department: department.value });
-    await trigger.ok({ department: department.value });
-})
+            await doc().collection('tickets').by(ticket.id).set({ ...ticket, department: department.value });
+            await trigger.ok({ department: department.value });
+        })
+    ];
+}
 ```
 
 The model decides what the ticket means. The service decides what happens: it stores the ticket with its department. That split is the most important design rule in this documentation.

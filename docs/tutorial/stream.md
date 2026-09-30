@@ -1,8 +1,8 @@
 ---
-title: 11. Stream the answer
+title: 10. Stream
 ---
 
-# 11. Stream the answer
+# 10. Stream
 
 **Where we are:** customers chat with the assistant per ticket.
 
@@ -13,7 +13,7 @@ title: 11. Stream the answer
 `stream(...)` has the same chain as `ask(...)`, and returns the answer as a stream of events instead of one response:
 
 ```ts
-const events = await assistant(ticket).stream(message);
+const events = await assistant(trigger.context, ticket).stream(message);
 
 for await (const event of events) {
     if (event.type === 'text.delta') { /* a piece of text */ }
@@ -21,7 +21,7 @@ for await (const event of events) {
 }
 ```
 
-For the chat page, we forward the pieces over HTTP as they come. A handler answers once, so this is an HTTP **route**, which can answer with a stream:
+For the chat page, we forward the pieces over HTTP as they come. A handler answers once, so this is an HTTP **route**, which can answer with a stream. Routes get the platform's trigger type, so `intelligence(...)` gives the context its intelligent members:
 
 ```ts title="services.ts"
 import { Readable } from 'node:stream';
@@ -31,11 +31,12 @@ routes(): Route {
 
     // highlight-start
     route.http().post('/chat/stream').do(async (params, trigger) => {
+        const context = intelligence(trigger.context);
         const { ticketId, message } = ChatMessage.parse(params);   // routes don't validate: do it here
-        const ticket = await trigger.context.doc().collection('tickets').by(ticketId).get<StoredTicket>();
+        const ticket = await context.doc().collection('tickets').by(ticketId).get<StoredTicket>();
         if (!ticket) return trigger.notFound(`Ticket ${ticketId} not found`);
 
-        const events = await assistant(ticket).stream(message);
+        const events = await assistant(context, ticket).stream(message);
 
         async function* text() {
             for await (const event of events) {
@@ -48,7 +49,6 @@ routes(): Route {
     });
     // highlight-end
 
-    route.mq().queue('ticket-created').do(/* … as before … */);
     return route;
 }
 ```
@@ -60,17 +60,34 @@ The conversation is stored as with `ask`: the user message right away, the assis
 ## Run it
 
 ```sh
-yarn step:11
+yarn step:10
 curl -N -X POST localhost:3000/chat/stream -H 'Content-Type: application/json' \
   -d '{"ticketId":"5f0c…","message":"Which pads do I need for a Velo City 3?"}'
 ```
 
 With `-N`, curl prints the words as they arrive.
 
+## Test it
+
+```ts title="step.test.ts"
+test('streams the answer as plain text, piece by piece', async () => {
+    ScriptedAI.reset(() => 'The Velo City 3 uses resin disc pads, type B01.');
+
+    const response = await fetch('http://127.0.0.1:3000/chat/stream', { method: 'POST', /* … */ });
+    const pieces: string[] = [];
+    for await (const chunk of response.body!) pieces.push(Buffer.from(chunk).toString('utf8'));
+
+    assert.equal(pieces.join(''), 'The Velo City 3 uses resin disc pads, type B01.');
+});
+
+test('the streamed turn is part of the conversation', async () => { /* … */ });
+```
+
 ## When not to stream
 
 - **Decisions and extractions.** A half-finished `choice` is useless; `ask` and wait.
 - **Tool calls.** `stream()` doesn't run tools. For answers that need tools (next chapter), use `ask`.
+- **Replies that must be checked.** A streamed reply is on the customer's screen before anyone could review it. [Chapter 20](./guard-the-output.md) comes back to this.
 - **Background work.** Nobody watches the triage queue.
 
 Stream when a person reads the text as it's written.
@@ -87,4 +104,4 @@ Stream when a person reads the text as it's written.
 
 Same conversation, same prompt, same context as `chat`; only the delivery changes. The route needs the same ownership check as `chat`.
 
-[Sample: step 11](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/11-streaming) · Next: [Let it look things up](./let-it-look-things-up.md)
+[Sample: step 10](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/10-stream) · Next: [Act](./act.md)
