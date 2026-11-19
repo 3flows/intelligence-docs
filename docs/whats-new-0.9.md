@@ -1,10 +1,28 @@
 # What's new in Intelligence 0.9
 
-Intelligence 0.9 is a large architectural update from the 0.8 line. The project is no longer a channel/conversation/coworker framework. It is a Platform-native AI foundation with three layers:
+Intelligence 0.9 is a large architectural update from the published 0.8 line. Compared to `@3flows/intelligence@0.8.30`, the project is no longer organized around separate `models`, `embeddings`, `channels`, old `agents`, executable `skills`, and `signal`. It is a Platform-native AI foundation with three layers:
 
-1. **Fluent inference** for direct model calls.
+1. **Fluent inference** over configured `ais` for direct model calls and model capabilities.
 2. **Chatbots and agents** for interactive and task-oriented AI surfaces.
 3. **Workflows and domains** for durable business processes, runtime records, and traceability.
+
+## What changed from published 0.8.30
+
+The old and new package shapes are intentionally different:
+
+| Area | 0.8.30 | 0.9 |
+| --- | --- | --- |
+| Model configuration | `models:` and `embeddings:` | unified `ais:` with capabilities and defaults |
+| Model API | `Model.chatCompletion(...)`, `structuredOutput(...)`, `Embedding` services | `trigger.context.inference()` Fluent chains |
+| User-facing chat | `channels:` such as `http-chat` routing to old agents | `chatbots:` with HTTP conversation compatibility and AG-UI |
+| Old agents | `agents[]` with `type: conversational`, `personality`, channel dispatch | run-based `agents:` with tasks, events, tools, policy, workspace, transports |
+| Skills | `Skill` subclasses with `tools()`, `do()`, `extract()`, `analyse()`, `classify()` | declarative `skills:` instructions/tools/policy; executable code is `tool(...)` handlers |
+| Runtime service API | abstract `IntelligenceService.handle(signal)`, `model()`, `embedding()`, `skill()` | handler-based services with `inference()`, `prompts()`, `skill()`, `agent()`, `workflow()` in context |
+| Orchestration | implicit in channels/agents/skills | explicit `workflow(...)` over Platform Flow |
+| Storage model | old model/conversation/tool entities and app-specific records | separate `IntelligenceTraceDomain`, `IntelligenceChatbotDomain`, `IntelligenceAgentDomain` |
+| Testing | app-local scripted shims | `@3flows/intelligence/testing` |
+
+See the [0.8 to 0.9 migration guide](./migration-0.8-to-0.9.md) for concrete before/after examples.
 
 ## Concept inventory
 
@@ -22,12 +40,15 @@ Intelligence 0.9 is a large architectural update from the 0.8 line. The project 
 | `IntelligenceTraceDomain` | Current | Durable best-effort technical model/tool trace records |
 | `IntelligenceChatbotDomain` | Current | Chatbot profiles, sessions, messages, files, and reactions |
 | `IntelligenceAgentDomain` | Current | Agent profiles, runs, steps, events, delegations, and workspace items |
-| Old `conversations:` configuration | Removed/replaced | Use `chatbots:` plus `ChatbotSession` records. HTTP compatibility still uses the word `/conversation`. |
-| Old channels | Removed | Model routing is now explicit through services, chatbots, agents, workflows, and tools. |
+| Old `channels:` configuration | Removed | Model routing is now explicit through services, chatbots, agents, workflows, and tools. |
+| Old `http-chat` channel | Removed/replaced | Use `chatbots[].http`, `agents[].http`, AG-UI, or explicit Platform routes. |
+| Old/preview `conversations:` configuration | Removed/replaced | Use `chatbots:` plus `ChatbotSession` records. HTTP compatibility still uses the word `/conversation`. |
 | Old identities | Removed | Use Platform identity/auth/policy primitives. |
 | Old ontology entities | Removed/replaced | Use Platform docs/blobs/vectors/domains and Intelligence trace/chatbot/agent domains. |
 | Old coworkers/actor runtime | Removed/replaced | Use agents and peer delegation. |
 | Old `Channel → Agent → Skill` dispatch | Removed | Agents and skills are first-class configured primitives with different semantics. |
+| `models:` / `embeddings:` | Removed/replaced | Use unified `ais:` and Fluent `inference()` chains. |
+| 0.8 `Signal` service pattern | Removed/replaced | Use Platform handlers, runtime context, `AbortSignal`, timeouts, and workflows. |
 | `skillprompts` / `qualityprompts` | Removed | Use `prompts:`, chatbot/agent `instructions`, `skills:`, and explicit evaluator/check/score calls. |
 
 ## Fluent inference expanded
