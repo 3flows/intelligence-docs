@@ -4,7 +4,20 @@ const sidebars = {
   intelligenceSidebar: [
     {
       type: 'category',
-      label: 'Tutorial: A support desk',
+      label: 'Start here: 0.9 building blocks',
+      collapsed: false,
+      link: { type: 'doc', id: 'learning-path/index' },
+      items: [
+        'learning-path/ais',
+        'learning-path/inference',
+        'learning-path/chatbots',
+        'learning-path/agents-and-skills',
+        'learning-path/workflows'
+      ]
+    },
+    {
+      type: 'category',
+      label: 'Tutorial: A support desk (legacy 0.8 storyline)',
       collapsed: false,
       link: { type: 'doc', id: 'tutorial/index' },
       items: [

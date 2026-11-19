@@ -21,12 +21,12 @@ export const triageWorkflow = workflow('support.triage')
   .step('draft', (s) =>
     s.inference().chat()
       .instructions('Draft a concise support reply.')
-      .question(({ input, steps }) => `${steps.department.choice}: ${input.text}`)
+      .question(({ input, steps }) => `${steps.department.value}: ${input.text}`)
       .timeout('20s')
       .define()
   )
   .returns(({ steps }) => ({
-    department: steps.department.choice,
+    department: steps.department.value,
     reply: steps.draft.text
   }));
 ```

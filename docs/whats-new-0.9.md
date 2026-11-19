@@ -179,10 +179,10 @@ export const triageWorkflow = workflow('support.triage')
   .step('draft', (s) =>
     s.inference().chat()
       .instructions('Draft a short support reply.')
-      .question(({ input, steps }) => `${steps.classify.choice}: ${input.text}`)
+      .question(({ input, steps }) => `${steps.classify.value}: ${input.text}`)
       .define()
   )
-  .returns(({ steps }) => ({ department: steps.classify.choice, reply: steps.draft.text }));
+  .returns(({ steps }) => ({ department: steps.classify.value, reply: steps.draft.text }));
 ```
 
 Register the definition in the `workflows` service, then run it through an Intelligence service context:
