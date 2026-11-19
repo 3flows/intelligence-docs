@@ -4,7 +4,7 @@ title: Migrating from 0.8 to 0.9
 
 # Migrating from 0.8 to 0.9
 
-This guide moves an application from `@3flows/intelligence@0.8.30` to `0.9.0-next.4`. What changed and why is in [What's new in 0.9](./whats-new-0.9.md).
+This guide moves an application from `@3flows/intelligence@0.8.30` to `0.9.0-next.5`. What changed and why is in [What's new in 0.9](./whats-new-0.9.md).
 
 There's no compatibility layer: the 0.8 building blocks (channels, conversational agents, skill classes, `Model`) don't exist in 0.9. A migration is a port, building block by building block. Every section below shows 0.8 on the left and 0.9 on the right, or 0.8 first and 0.9 after it.
 
@@ -33,7 +33,7 @@ Intelligence 0.9 runs on Platform 0.9, and names the exact Platform version it n
 
 ```json title="package.json"
 "dependencies": {
-    "@3flows/intelligence": "0.9.0-next.4",
+    "@3flows/intelligence": "0.9.0-next.5",
     "@3flows/platform": "0.9.0-next.31"
 }
 ```

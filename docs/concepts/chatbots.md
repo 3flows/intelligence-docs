@@ -97,7 +97,3 @@ These are the technical records of a conversation. They aren't the place for bus
 ## Reviewer's view
 
 A chatbot's YAML is its contract: the prompt, the tools, the server it's on. Check three things. **What may it do?** The tool list, and whether any tool on it changes data. **Who can reach it?** The HTTP server and its authentication. **What is kept?** Sessions hold what people typed; decide who deletes them, and when.
-
-:::caution Long sessions in 0.9.0-next.4
-In this version, a chatbot reads only the first ten stored messages of a session. See [Known gaps](../guides/known-gaps.md#chatbots-and-agents).
-:::

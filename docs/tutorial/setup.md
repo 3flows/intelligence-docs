@@ -52,7 +52,7 @@ It's the [platform starter](https://3flows.github.io/platform-docs/docs/tutorial
     "test": "yarn build && node --test dist/*.test.js"
   },
   "dependencies": {
-    "@3flows/intelligence": "0.9.0-next.4",
+    "@3flows/intelligence": "0.9.0-next.5",
     "@3flows/platform": "0.9.0-next.31"
   },
   "devDependencies": {

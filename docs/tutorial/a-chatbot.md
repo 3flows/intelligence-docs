@@ -187,14 +187,11 @@ test('the chatbot answers with its prompt, and with the tools of the help center
 
 test('a session starts with the greeting from YAML, without a model call', async () => { /* … */ });
 test('the session keeps the history: the next message sees the turn before', async () => { /* … */ });
+test('a long session keeps its whole history, in order', async () => { /* … */ });
 test('sessions and messages are records of the chatbot domain, apart from tickets and chats', async () => { /* … */ });
 ```
 
 The highlighted line is the permission list of this chatbot, as a test.
-
-:::caution Long sessions in 0.9.0-next.4
-In this version, a chatbot reads only the first ten stored messages of a session. After about four turns, the model no longer sees the whole conversation. Short help chats work; don't rely on long sessions until this is fixed. See [Known gaps](../guides/known-gaps.md#chatbots-and-agents).
-:::
 
 ## What you learned
 

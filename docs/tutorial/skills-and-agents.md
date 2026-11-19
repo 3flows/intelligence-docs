@@ -119,23 +119,19 @@ handler('prepareCase', t.object({ ticketId: t.string() }), Brief, async ({ ticke
     if (!ticket) return trigger.notFound(`Ticket ${ticketId} not found`);
 
     // highlight-start
-    // stream() yields the agent's events while it works, and records them with the run. run() only returns the result.
-    const events = agent(RESEARCHER)
+    // run() waits for the agent and returns the result. stream() would yield its events while it works.
+    const run = await agent(RESEARCHER)
         .using(trigger.context)
         .task('Prepare a brief for the colleague who takes over this ticket.')
         .input({ ticketId, subject: ticket.subject, body: ticket.body, triage: ticket.triage, escalation: ticket.escalation })
         .metadata({ subjectType: 'ticket', subjectId: ticketId, purpose: 'case-brief' })
-        .stream();
+        .run();
     // highlight-end
+    if (run.status === 'failed') throw new Error(`The case researcher failed on ticket ${ticketId}`);
 
-    let run: AgentRunResult | undefined;
-    const steps: string[] = [];   // the tools it called, in order
-    for await (const event of events) {
-        if (event.type === 'tool.started') steps.push(event.toolName);
-        if (event.type === 'run.completed') run = event.result;
-        if (event.type === 'run.failed') throw new Error(`The case researcher failed: ${String(event.error)}`);
-    }
-    if (!run) throw new Error('The case researcher did not finish');
+    // The run recorded what the agent did: the tools it called, in order.
+    const events = await agent(RESEARCHER).run(run.runId).events();
+    const steps = events.flatMap((event) => (event.type === 'tool.started' ? [event.toolName] : []));
 
     // One brief per ticket: a new one replaces the old one, and the old run goes with it.
     const previous = await doc().collection('briefs').by(ticketId).get<Brief>();
@@ -149,7 +145,8 @@ handler('prepareCase', t.object({ ticketId: t.string() }), Brief, async ({ ticke
 
 - **`using(trigger.context)`** gives the agent this request's context, so its tools run as part of it.
 - **`task(...)`** is what to do, **`input(...)`** is what to do it with. The email isn't in the input: the agent doesn't need it, its tools do.
-- An agent has two terminal verbs. **`run()`** waits and returns the result. **`stream()`** yields events while the agent works (`tool.started`, `tool.completed`, `text.delta`, `run.completed`, …), which is what we want here: the brief records which tools were used to write it.
+- An agent has two terminal verbs. **`run()`** waits and returns the result: a `runId`, a `status` and the `text`. **`stream()`** yields events while the agent works, for showing progress.
+- **Every run is recorded.** `agent(name).run(runId).events()` returns what happened, in order: `tool.started`, `tool.completed`, `run.completed`, … The brief keeps the names of the tools that were used to write it.
 - **The result is ours.** The brief is stored in `briefs`, under the ticket's id, like the chat. The run is the agent's record; the brief is the desk's.
 
 The `email` never reached the model, the agent could only read, and it stopped after four rounds at the latest. That's the whole design: **the model chooses the next step; we choose the steps it can take.**
@@ -241,7 +238,7 @@ async function forgetRun(runId: string): Promise<void> {
 
 - **An agent works on a task in several steps**: it chooses the tools, we choose which tools exist and how far it may go.
 - **A skill** bundles instructions and tool references, for reuse. **`policy`** sets the limits.
-- **`trigger.context.agent(name).using(context).task(…).input(…)`**, then `run()` for the result or `stream()` for the events.
+- **`trigger.context.agent(name).using(context).task(…).input(…)`**, then `run()` for the result or `stream()` for progress. `run(runId).events()` returns what the agent did.
 - **Tools are scoped by what they look up themselves**, never by an argument the model fills in.
 - **Runs live in the `IntelligenceAgent` domain**; what the desk needs from them, it stores itself.
 

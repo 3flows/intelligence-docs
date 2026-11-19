@@ -4,17 +4,9 @@ title: Known gaps
 
 # Known gaps
 
-This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.4`, and how to work around it. Mention a workaround in the reviewer's view when you use one.
+This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.5`, and how to work around it. Mention a workaround in the reviewer's view when you use one.
 
 ## Chatbots and agents
-
-**A chatbot reads only the first ten stored messages of a session.** A session stores its instructions, the greeting, and two messages per turn; after about four turns, the model no longer gets the whole conversation, and `GET /conversation/:id` doesn't list all messages. `history.maxMessages` doesn't change that. *Workaround:* keep chatbot sessions short, or keep the history in your own service and send it with `chat().messages(...)`, as the tutorial's ticket chat does.
-
-**`agent(name).run(id).events()` returns only the first ten recorded events of a run.** *Workaround:* collect the events from `stream()` while the agent works.
-
-Both have the same cause: the platform's entity queries return ten records by default. In your own queries on the Intelligence domains, use `.limit(0)` to read all records.
-
-**`run()` on an agent records no tool events.** Only `stream()` yields and records `tool.started` and `tool.completed`.
 
 **Chatbot retention isn't automatic.** Sessions are kept until they're deleted, with `session(id).delete()` or `DELETE /conversation/:id`.
 
@@ -46,7 +38,7 @@ There's no evaluation API in the library. The samples have a small harness (`_sh
 
 ## Versions
 
-**Intelligence names the exact Platform version it needs.** `@3flows/intelligence@0.9.0-next.4` depends on `@3flows/platform@0.9.0-next.31`. An application that asks for another Platform version gets two Platforms in `node_modules`, and services registered in one aren't found by the other. Pin both.
+**Intelligence names the exact Platform version it needs.** `@3flows/intelligence@0.9.0-next.5` depends on `@3flows/platform@0.9.0-next.31`. An application that asks for another Platform version gets two Platforms in `node_modules`, and services registered in one aren't found by the other. Pin both.
 
 ## Local models
 
@@ -55,5 +47,7 @@ There's no evaluation API in the library. The samples have a small harness (`_sh
 **Parallel requests while a model loads.** LM Studio can answer `500` to parallel requests while it's still loading a model. `retry` in the AI's `defaults` covers it.
 
 ## Platform
+
+**Entity queries return ten records by default.** `find(...).all()` on a domain entity returns the first ten. In your own queries on the Intelligence domains, use `.limit(0)` to read all records.
 
 **Handlers don't apply Zod defaults.** Platform handlers validate their input against the schema, but pass the input on as it was sent, so `.default(...)` values never arrive. *Workaround:* mark the field `.optional()` and default it in code: `async ({ attachments = [], ...ticket }, trigger) => …`.

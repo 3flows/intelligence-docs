@@ -58,7 +58,9 @@ result.text;     // what the agent wrote
 There are two terminal verbs:
 
 - **`run()`** waits and resolves with the result.
-- **`stream()`** yields events while the agent works: `run.started`, `step.started`, `text.delta`, `tool.started`, `tool.completed`, `interaction.required`, `run.completed`, `run.failed`. Use it to show progress, or to record what the agent did.
+- **`stream()`** yields events while the agent works: `run.started`, `step.started`, `text.delta`, `tool.started`, `tool.completed`, `interaction.required`, `run.completed`, `run.failed`. Use it to show progress.
+
+Either way, the events are recorded with the run: `run(id).events()` returns what the agent did, tool by tool.
 
 ```ts
 for await (const event of trigger.context.agent('case-researcher').using(trigger.context).task(task).input(input).stream()) {
@@ -137,7 +139,3 @@ A run holds the task and its input. Like chats and sessions, it needs a retentio
 ## Reviewer's view
 
 Read three things. The **tool list**: is there anything on it that writes, sends or pays? The **scoping**: can any tool return data the task has no business with, whatever the model passes? The **limits**: what does a run cost at most, and what stops it?
-
-:::caution Events in 0.9.0-next.4
-In this version, `run(id).events()` returns only the first ten recorded events of a run. To record what an agent did, collect the events from `stream()`. See [Known gaps](../guides/known-gaps.md#chatbots-and-agents).
-:::

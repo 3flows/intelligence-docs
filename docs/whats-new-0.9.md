@@ -4,7 +4,7 @@ title: What's new in 0.9
 
 # What's new in 0.9
 
-This page compares `@3flows/intelligence@0.9.0-next.4` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
+This page compares `@3flows/intelligence@0.9.0-next.5` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
 
 0.9 isn't an update of 0.8: it's a different library with the same purpose. 0.8 was a framework of **channels, agents and skills**: a message came in through a channel, an agent with a personality answered it, and skills were classes that did the work. 0.9 is built around **calls**: a service asks a model for one thing, in one readable line, and everything larger (chatbots, agents, workflows) is built from that.
 
@@ -127,7 +127,7 @@ They're registered under `entities.domains`, and kept apart from each other and 
 
 The terminal verbs changed in `0.9.0-next.4`. Every chain now ends with a verb of its own, and takes its task from a method before it:
 
-| Before | `0.9.0-next.4` |
+| Before | Since `0.9.0-next.4` |
 |---|---|
 | `chat()….ask(question)` | `chat()….question(question).answer()` |
 | `chat()….stream(question)` | `chat()….question(question).stream()` |
@@ -145,6 +145,12 @@ The terminal verbs changed in `0.9.0-next.4`. Every chain now ends with a verb o
 | `InferenceRunEntity`, `ConversationMessageEntity` | `IntelligenceTraceDomain`; your own store, or `IntelligenceChatbotDomain` |
 | `Intelligence.prompts()`, `prompts().render({ name, variables })` | `trigger.context.prompts().prompt(name).variables(v).render()` |
 | A custom provider's `doChat(request)` | `doChat(chain)`, with `chain._request()` |
+
+### Fixed in `0.9.0-next.5`
+
+- Chatbots read the whole session. Before, only the first ten stored messages were read, so the model lost parts of a conversation after about four turns, and deleting a session left messages behind.
+- `agent(name).run(id).events()` returns every event of a run, not the first ten. Limits above ten for `maxSteps` and `maxChildRuns` are enforced.
+- A blocking agent `run()` records `tool.started` and `tool.completed` events, as `stream()` does.
 
 ## Known gaps
 
