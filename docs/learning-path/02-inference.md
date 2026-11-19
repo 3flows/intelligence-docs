@@ -7,7 +7,7 @@ title: 2. Use Fluent inference
 After `ais:` exists, application code calls models through Fluent inference:
 
 ```ts
-trigger.context.inference().chat().ask('...')
+trigger.context.inference().chat().question('...').answer()
 ```
 
 Use Fluent inference when the application owns the operation: a draft, a decision, an extraction, a moderation check, a batch run, or a workflow step.
@@ -22,7 +22,8 @@ handler('ask', AskInput, AskOutput, async ({ question }, trigger) => {
     .prompt('support.reply', { shop: 'Velo' })
     .metadata({ purpose: 'starter.ask' })
     .timeout(10_000)
-    .ask(question);
+    .question(question)
+    .answer();
 
   await trigger.ok({ answer: response.text ?? '' });
 });
@@ -65,7 +66,8 @@ const response = await trigger.context
   .inference()
   .chat()
   .toolsFrom('SupportService')
-  .ask('Where is order A-1042?');
+  .question('Where is order A-1042?')
+  .answer();
 ```
 
 The tool implementation is normal Platform service code; Intelligence only adds model-facing metadata and tool-call orchestration.

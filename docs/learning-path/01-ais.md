@@ -60,7 +60,8 @@ ais:
 Then select them explicitly when needed:
 
 ```ts
-await trigger.context.inference().chat().model('chat').ask(question);
+await trigger.context.inference().chat().model('chat').question(question)
+    .answer();
 await trigger.context.inference().embedding().model('embedding').with(text).embed();
 ```
 
