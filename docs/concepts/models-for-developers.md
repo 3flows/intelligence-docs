@@ -57,7 +57,7 @@ Tokens matter for three reasons:
 | | What it means for you |
 |---|---|
 | **Cost** | Providers charge per token, separately for input (what you send) and output (what comes back). Long context in every call adds up. |
-| **Latency** | Output tokens are generated one after another. A long answer takes longer. [Streaming](../tutorial/stream.md) shows them as they come. |
+| **Latency** | Output tokens are generated one after another. A long answer takes longer. `InferenceStream` lets services forward text as it arrives. |
 | **Limits** | Every model has a **context window**: the maximum number of tokens it can see at once. Instructions, history, documents and the answer all have to fit. |
 
 Every response carries `usage` with `promptTokens`, `completionTokens` and `totalTokens`. With tracing/domain storage configured, model calls are also recorded as technical inference trace records. Keep those separate from business state and chatbot/agent runtime records.
@@ -99,4 +99,4 @@ Keeping them apart is what makes a call reviewable: the instructions are policy,
 
 - [Capabilities and providers](./capabilities-and-providers.md): how a call finds a model.
 - [The fluent API](./the-fluent-api.md): the grammar every capability shares.
-- [The tutorial](../tutorial/index.md): all of this, one small step at a time.
+- [The learning path](../learning-path/index.md): the current 0.9 building blocks in order.

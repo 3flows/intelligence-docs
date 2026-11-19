@@ -47,36 +47,20 @@ Tie spans to your domain with `.trace(traceId)`, `.labels(...)`, `.metadata({...
 
 ## Inference runs
 
-With the conversations ontology registered, every model call is also stored as an `AIInferenceRun` entity, whether or not it belongs to a conversation:
+With the trace domain registered, model calls and tool executions can be stored as durable technical trace records:
 
 ```yaml
 entities:
   backend: docs
-  ontologies:
-    - IntelligenceConversationsOntology
+  domains:
+    - IntelligenceTrace
 ```
 
-| Field | |
-|---|---|
-| `operation` | `chat`, `structured`, `choice`, `embed`, … |
-| `ai`, `provider`, `model` | Who answered |
-| `inputTokens`, `outputTokens`, `totalTokens` | Usage |
-| `latencyMs` | Duration |
-| `status`, `error` | `completed` or `failed` |
-| `conversationKey`, `turnIndex` | The conversation turn, if any |
-| `metadata` | The chain's `.metadata(...)`, plus `promptNames` and `prompts` (name and version) |
+Trace records capture fields such as operation, AI, provider, model, usage, latency, status, errors, prompts and chain metadata. Query them through the `IntelligenceTraceDomain` exports when your app needs technical accountability.
 
-Because they're entities, you can query them like your own data:
+The `metadata` you set on chains links trace records back to business subjects, so questions like *"what did this ticket cost?"* are answered from trace/domain data rather than chatbot transcripts.
 
-```ts
-import { InferenceRunEntity } from '@3flows/intelligence';
-
-const failed = await InferenceRunEntity.find({ status: 'failed' }).all();
-```
-
-Conversations and turns carry running token totals too (`AIConversation.totalTokens`, `AIConversationTurn.totalTokens`), and the `metadata` you set on chains is queryable, so *"what did this ticket cost?"* is one query. See [See what it did](../tutorial/see-what-it-did.md).
-
-Recording never fails a call: if storing a run fails, the answer is still returned.
+Recording is best-effort: if storing a trace fails, inference still returns its answer.
 
 ## Metrics
 

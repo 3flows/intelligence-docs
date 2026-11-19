@@ -93,5 +93,5 @@ await Intelligence.inference()
 
 ## See also
 
-- [Conversations](./conversations.md): the same chain, with history.
+- [Chatbots](../concepts/chatbots.md): human-facing session surfaces with history.
 - [Tools](./tools.md): letting the model call your services.

@@ -101,4 +101,4 @@ So when someone asks *"why did the assistant say that?"* or *"what did this cost
 
 We still need this layer. Not because calling a model is hard, but because owning an AI feature in production is.
 
-**See it for yourself:** the [tutorial](./tutorial/index.md) builds a support desk in six parts: from a first question to an assistant that routes tickets, looks up orders and answers from the help center, then measures its own quality, guards its input and output, and runs in production. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).
+**See it for yourself:** the [learning path](./learning-path/index.md) introduces the current 0.9 building blocks in order: AIs, Fluent inference, chatbots, skills, agents and workflows. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).

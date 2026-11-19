@@ -6,11 +6,9 @@ title: Known gaps
 
 This page tracks current 0.9 limitations. Older documentation and tutorial chapters may still mention 0.8-era conversations; for new apps use the concepts in [What's new in 0.9](../whats-new-0.9.md).
 
-## Samples and tutorial drift
+## Samples
 
-The `starter/` sample has been updated to the 0.9 surfaces: library-exported `IntelligenceService`, `handler`, `tool`, `chatbots`, `skills`, `agents`, and workflows.
-
-Some support-desk tutorial chapters still show legacy `conversations()` and `AIConversation*` examples. Treat those chapters as historical until they are rewritten around chatbots. Use the [migration guide](../migration-0.8-to-0.9.md) when adapting them.
+The `starter/` sample follows the current 0.9 surfaces: library-exported `IntelligenceService`, `handler`, `tool`, `ais`, Fluent inference, `chatbots`, `skills`, `agents`, and workflows.
 
 ## Evaluations
 

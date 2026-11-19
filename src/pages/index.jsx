@@ -6,77 +6,64 @@ import Link from '@docusaurus/Link';
 import styles from './index.module.css';
 
 const serviceCode = `@Register()
-export class TicketsService extends IntelligenceService {
+export class SupportService extends IntelligenceService {
     handlers = () => [
-        handler('triage', Ticket, Triage, async (ticket, trigger) => {
-            const ai = trigger.context.inference();
+        handler('triageTicket', Ticket, Triage, async (ticket, trigger) => {
+            const decision = await trigger.context
+                .inference()
+                .choice('department')
+                .state('Route this support ticket.')
+                .oneOf(['billing', 'shipping', 'technical'])
+                .with(ticket.text)
+                .metadata({ purpose: 'triage', subjectType: 'ticket', subjectId: ticket.id })
+                .timeout(10_000)
+                .decide();
 
-            const department = await ai.choice('department')
-                .oneOf(['billing', 'technical', 'sales'])
-                .with(ticket.body)
-                .ask('Which team should handle this ticket?');
-
-            const urgent = await ai.check('urgent')
-                .with(ticket.body)
-                .ask('Does this need an answer today?');
-
-            await trigger.ok({
-                department: department.value,
-                urgent: urgent.value
-            });
+            await trigger.ok({ department: decision.value });
         })
     ];
 }`;
 
-const yamlCode = `services:
-  - name: TicketsService
-
-https:
-  - name: api
-    port: 3000
-    services:
-      - name: TicketsService
-
-ais:
+const yamlCode = `ais:
   - name: DEFAULT
-    provider: openai      # anthropic, azureai,
-    model: gpt-4.1-mini   # groq, ollama, lmstudio, ...
+    provider: openai
+    model: gpt-4.1-mini
     connection:
-      apiKey: \${{ OPENAI_API_KEY }}`;
+      apiKey: \${{ OPENAI_API_KEY }}
+    defaults:
+      timeoutMs: 10000
+
+chatbots:
+  - name: support
+    type: conversation
+    model: DEFAULT
+    http:
+      path: /support`;
 
 const points = [
   {
-    title: 'Capabilities, not vendors',
+    title: 'AIs configure capability providers',
     description:
-      'Code asks for what it needs: chat, a choice, a score, an embedding. YAML decides which model and which provider delivers it.'
+      'YAML says which provider/model supplies chat, structured output, tools, embeddings and other capabilities.'
   },
   {
-    title: 'Language in, data out',
+    title: 'Inference is the service API',
     description:
-      'choice, check, score and extract turn free text into typed values that a service can store, route and test.'
+      'Handlers call chat, choice, check, score, extract and more through one Fluent API with metadata, timeouts and tests.'
   },
   {
-    title: 'Reviewable by design',
+    title: 'Chatbots, agents and workflows build up',
     description:
-      'One small vocabulary for prompts, context, tools and conversations. A reviewer sees what the model gets, what it may do, and what comes back.'
+      'Add a chatbot for human sessions, agents for task runs, and workflows for known multi-step business processes.'
   }
 ];
 
 const journey = [
-  { step: '·', label: 'Set up', to: '/docs/tutorial/setup' },
-  { step: '1', label: 'Intelligent service', to: '/docs/tutorial/intelligent-service' },
-  { step: '3', label: 'Prompts', to: '/docs/tutorial/prompts-as-configuration' },
-  { step: '4', label: 'Swap & test', to: '/docs/tutorial/swap-and-test' },
-  { step: '5', label: 'Choose', to: '/docs/tutorial/choose' },
-  { step: '7', label: 'Extract', to: '/docs/tutorial/extract' },
-  { step: '9', label: 'Conversations', to: '/docs/tutorial/remember' },
-  { step: '11', label: 'Tools', to: '/docs/tutorial/act' },
-  { step: '14', label: 'RAG', to: '/docs/tutorial/answer-from-knowledge' },
-  { step: '16', label: 'Evaluate', to: '/docs/tutorial/measure' },
-  { step: '18', label: 'Judges', to: '/docs/tutorial/judge-the-answers' },
-  { step: '19', label: 'Guardrails', to: '/docs/tutorial/guard-the-input' },
-  { step: '22', label: 'Many models', to: '/docs/tutorial/the-right-model-for-each-job' },
-  { step: '24', label: 'Observability', to: '/docs/tutorial/see-what-it-did' }
+  { step: '1', label: 'Configure AIs', to: '/docs/learning-path/ais' },
+  { step: '2', label: 'Use Fluent inference', to: '/docs/learning-path/inference' },
+  { step: '3', label: 'Add a chatbot', to: '/docs/learning-path/chatbots' },
+  { step: '4', label: 'Add skills and agents', to: '/docs/learning-path/agents-and-skills' },
+  { step: '5', label: 'Orchestrate with workflows', to: '/docs/learning-path/workflows' }
 ];
 
 function Hero() {
@@ -84,14 +71,14 @@ function Hero() {
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
         <Heading as="h1" className="hero__title">
-          AI features your team can read, review and own.
+          Build AI applications on Platform primitives.
         </Heading>
         <p className="hero__subtitle">
-          Ask for a capability in one fluent line. Decide in YAML which model answers.
+          Configure AIs, call capabilities through Fluent inference, then add chatbots, agents, skills and workflows as your app grows.
         </p>
         <div className={styles.buttons}>
-          <Link className="button button--secondary button--lg" to="/docs/tutorial">
-            Start the tutorial
+          <Link className="button button--secondary button--lg" to="/docs/learning-path">
+            Start the learning path
           </Link>
           <Link className="button button--outline button--secondary button--lg" to="/docs/why">
             Why 3flows Intelligence
@@ -104,18 +91,18 @@ function Hero() {
 
 export default function Home() {
   return (
-    <Layout title="3flows Intelligence" description="AI features your team can read, review and own.">
+    <Layout title="3flows Intelligence" description="Build AI applications on Platform primitives.">
       <Hero />
       <main>
         <section className={styles.section}>
           <div className="container">
-            <Heading as="h2" className={styles.center}>This is a complete AI feature</Heading>
+            <Heading as="h2" className={styles.center}>A small, complete Intelligence feature</Heading>
             <p className={styles.center}>
-              Route a support ticket and flag it as urgent, with no SDK, no JSON parsing and no provider in sight.
+              Code asks for a capability. Configuration decides which AI provides it. Platform services own the business behavior.
             </p>
             <div className="row">
               <div className="col col--7">
-                <CodeBlock language="ts" title="tickets.ts">{serviceCode}</CodeBlock>
+                <CodeBlock language="ts" title="support-service.ts">{serviceCode}</CodeBlock>
               </div>
               <div className="col col--5">
                 <CodeBlock language="yaml" title="intelligence.yml">{yamlCode}</CodeBlock>
@@ -139,9 +126,9 @@ export default function Home() {
 
         <section className={styles.section}>
           <div className="container">
-            <Heading as="h2" className={styles.center}>From a first question to an assistant you can measure, guard and operate</Heading>
+            <Heading as="h2" className={styles.center}>Learn the building blocks in order</Heading>
             <p className={styles.center}>
-              One small support desk in six parts, one new concept per chapter. Built on the 3flows Platform, so storage, queues and HTTP are already solved.
+              The starter sample follows this exact path, so each concept has a concrete file to inspect.
             </p>
             <div className={styles.journey}>
               {journey.map(({ step, label, to }) => (
@@ -152,8 +139,8 @@ export default function Home() {
               ))}
             </div>
             <div className={styles.buttons}>
-              <Link className="button button--primary button--lg" to="/docs/tutorial">
-                Start the tutorial
+              <Link className="button button--primary button--lg" to="/docs/learning-path">
+                Start the learning path
               </Link>
             </div>
           </div>

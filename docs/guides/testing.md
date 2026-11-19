@@ -190,4 +190,4 @@ Recognizing the call in a script: `request.responseSchemaName` is the decision o
 
 ## What not to assert
 
-The *wording* of an answer from a real model. If a test needs a real model, it's an evaluation: keep it out of `yarn test`, and run it deliberately. Part 5 of the tutorial builds one, starting with [Measure before you improve](../tutorial/measure.md).
+The *wording* of an answer from a real model. If a test needs a real model, it's an evaluation: keep it out of `yarn test`, and run it deliberately.

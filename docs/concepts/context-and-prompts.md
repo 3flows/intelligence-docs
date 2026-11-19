@@ -32,7 +32,7 @@ A good test for where something belongs: **would it be the same for every custom
 
 **Review.** A reviewer reads instructions and prompts as policy: tone, rules, limits. They read `.with(...)` as data flow: *which data leaves our system in this call?* Mixing them in one template string hides both.
 
-**Safety.** Text from customers can contain instructions of its own ("ignore all previous instructions and…"). That's called **prompt injection**. Keeping customer text in input, never concatenated into instructions, is the first defense. It isn't a complete one: see [Guard the input](../tutorial/guard-the-input.md).
+**Safety.** Text from customers can contain instructions of its own ("ignore all previous instructions and…"). That's called **prompt injection**. Keeping customer text in input, never concatenated into instructions, is the first defense. Add moderation and policy checks at service boundaries for sensitive flows.
 
 **Reuse.** Chains are [immutable](./the-fluent-api.md#chains-are-immutable). Build the policy part once, add data per call.
 
@@ -86,7 +86,7 @@ chat.messages([
 ]).ask('It is A-1042.');
 ```
 
-That's useful when the history already lives somewhere else, for example in an email thread. When your application owns the history, use a [conversation](./conversations.md) instead.
+That's useful when the history already lives somewhere else, for example in an email thread. When a human-facing session should own the history, use a [chatbot](./chatbots.md).
 
 ## How much context?
 

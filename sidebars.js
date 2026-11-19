@@ -15,83 +15,6 @@ const sidebars = {
         'learning-path/workflows'
       ]
     },
-    {
-      type: 'category',
-      label: 'Tutorial: A support desk (legacy 0.8 storyline)',
-      collapsed: false,
-      link: { type: 'doc', id: 'tutorial/index' },
-      items: [
-        {
-          type: 'category',
-          label: 'Part 1: Your first intelligent service',
-          collapsed: false,
-          items: [
-            'tutorial/setup',
-            'tutorial/intelligent-service',
-            'tutorial/anatomy-of-a-call',
-            'tutorial/prompts-as-configuration',
-            'tutorial/swap-and-test'
-          ]
-        },
-        {
-          type: 'category',
-          label: 'Part 2: Turn language into data',
-          collapsed: false,
-          items: [
-            'tutorial/choose',
-            'tutorial/judge',
-            'tutorial/extract',
-            'tutorial/meaning-and-action'
-          ]
-        },
-        {
-          type: 'category',
-          label: 'Part 3: Converse and act',
-          collapsed: false,
-          items: [
-            'tutorial/remember',
-            'tutorial/stream',
-            'tutorial/act'
-          ]
-        },
-        {
-          type: 'category',
-          label: 'Part 4: Give it knowledge',
-          collapsed: false,
-          items: [
-            'tutorial/documents-as-context',
-            'tutorial/embeddings',
-            'tutorial/answer-from-knowledge',
-            'tutorial/rerank'
-          ]
-        },
-        {
-          type: 'category',
-          label: 'Part 5: Quality and guardrails',
-          collapsed: false,
-          items: [
-            'tutorial/measure',
-            'tutorial/improve-with-evidence',
-            'tutorial/judge-the-answers',
-            'tutorial/guard-the-input',
-            'tutorial/guard-the-output',
-            'tutorial/humans-in-the-loop'
-          ]
-        },
-        {
-          type: 'category',
-          label: 'Part 6: Run it in production',
-          collapsed: false,
-          items: [
-            'tutorial/the-right-model-for-each-job',
-            'tutorial/dont-block',
-            'tutorial/see-what-it-did',
-            'tutorial/going-live'
-          ]
-        },
-        'tutorial/whats-next'
-      ]
-    },
     'why',
     {
       type: 'category',
@@ -116,7 +39,6 @@ const sidebars = {
         'concepts/agents',
         'concepts/skills',
         'concepts/workflows',
-        'concepts/conversations',
         'concepts/tools',
         'concepts/retrieval',
         'concepts/modalities',
@@ -132,7 +54,6 @@ const sidebars = {
         'api/chat',
         'api/decisions',
         'api/extract',
-        'api/conversations',
         'api/tools',
         'api/inputs-and-files',
         'api/embeddings-and-reranking',

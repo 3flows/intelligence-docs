@@ -55,7 +55,7 @@ const config = {
         srcDark: 'img/3flows-wordmark-white.png'
       },
       items: [
-        { to: '/docs/tutorial', label: 'Tutorial', position: 'left' },
+        { to: '/docs/learning-path', label: 'Learning path', position: 'left' },
         { to: '/docs/why', label: 'Why', position: 'left' },
         { to: '/docs/concepts/models-for-developers', label: 'Concepts', position: 'left' },
         { to: '/docs/api/overview', label: 'Fluent API', position: 'left' },
@@ -71,7 +71,7 @@ const config = {
         {
           title: 'Docs',
           items: [
-            { label: 'Tutorial', to: '/docs/tutorial' },
+            { label: 'Learning path', to: '/docs/learning-path' },
             { label: 'Why 3flows Intelligence', to: '/docs/why' },
             { label: 'Concepts', to: '/docs/concepts/models-for-developers' },
             { label: 'Fluent API', to: '/docs/api/overview' },

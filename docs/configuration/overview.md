@@ -38,7 +38,7 @@ prompts:
 |---|---|
 | [`ais`](./ais.md) | The models: provider, model, connection, capabilities, defaults |
 | [`prompts`](./prompts.md) | The prompt catalog |
-| [`chatbots`](./conversations.md) | Configured interactive assistants and session history |
+| `chatbots` | Configured interactive assistants and session history |
 | `skills` | Reusable capability bundles for agents |
 | `agents` | Task/run harnesses with tools, policy, workspace, and transports |
 | `intelligence` | Validation and inference policy settings |

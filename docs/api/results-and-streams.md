@@ -71,4 +71,4 @@ const final = await stream.completed;
 
 ### Streaming over HTTP
 
-A platform handler answers once. To show tokens as they arrive, forward the events from an HTTP route as server-sent events, or collect them and answer at the end. See [Stream](../tutorial/stream.md).
+A platform handler answers once. To show tokens as they arrive, forward the stream from an HTTP route as server-sent events with `stream.toReadable({ format: 'sse' })`, or collect it with `stream.text()` and answer at the end.
