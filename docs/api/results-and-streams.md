@@ -6,7 +6,7 @@ title: Results and streams
 
 ## `AIChatResponse`
 
-Returned by `chat().ask(...)` and `conversation(id).ask(...)`.
+Returned by `chat().ask(...)`, chatbot turns, and agent/chatbot model calls.
 
 | Field | Type | Description |
 |---|---|---|
@@ -26,7 +26,7 @@ Returned by `chat().ask(...)` and `conversation(id).ask(...)`.
 { promptTokens?: number; completionTokens?: number; totalTokens?: number }
 ```
 
-On every response that the provider reports usage for. With the tool loop, `usage` covers the last call only; the `AIInferenceRun` entities have every call. See [See what it did](../tutorial/see-what-it-did.md).
+On every response that the provider reports usage for. With the tool loop, `usage` covers the last call only; trace records can store each model/tool call when tracing/domain storage is configured.
 
 ## Decisions
 
@@ -41,12 +41,12 @@ All have `confidence?`, `reason?` and `raw`. See [Decisions](./decisions.md).
 
 ## Streams
 
-`chat().stream(...)` and `conversation(id).stream(...)` resolve with an `AsyncIterable<AIStreamEvent>`:
+`chat().stream(...)` returns an `InferenceStream<AIStreamEvent, AIChatResponse>`. It is an `AsyncIterable<AIStreamEvent>` and also exposes `completed`, `onSettled(...)`, `text()`, and `toReadable({ format: 'text' | 'sse' })`:
 
 ```ts
-const events = await Intelligence.inference().chat().stream('Draft a reply.');
+const stream = await Intelligence.inference().chat().stream('Draft a reply.');
 
-for await (const event of events) {
+for await (const event of stream) {
     switch (event.type) {
         case 'text.delta': process.stdout.write(event.text); break;
         case 'usage':      console.log(event.usage); break;
@@ -54,6 +54,9 @@ for await (const event of events) {
         case 'error':      console.error(event.error); break;
     }
 }
+
+const text = await stream.text();
+const final = await stream.completed;
 ```
 
 | `type` | Fields | When |

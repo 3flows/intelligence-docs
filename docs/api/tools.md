@@ -4,11 +4,33 @@ title: Tools
 
 # Tools
 
-Attach tools to [`chat()`](./chat.md) or a [conversation](./conversations.md). When the model requests a call, Intelligence runs it, sends the result back and calls the model again, up to `.maxToolRounds(n)` rounds (default `3`). Concepts: [Tools](../concepts/tools.md).
+Attach tools to [`chat()`](./chat.md), chatbots, and agents. When the model requests a call, Intelligence runs it, sends the result back and calls the model again, up to `.maxToolRounds(n)` rounds (default `3`). Concepts: [Tools](../concepts/tools.md).
 
-Tools require an AI with the `tools` capability. `.stream(...)` doesn't run tools.
+Tools require an AI with the `tools` capability. Fluent chat streaming supports tool/service-enabled chains through `InferenceStream`.
 
 ## Service handlers as tools
+
+Prefer `tool(...)` handlers for reusable model-facing metadata:
+
+```ts
+import { IntelligenceService, tool } from '@3flows/intelligence';
+
+class OrdersService extends IntelligenceService {
+  handlers = () => [
+    tool('lookupOrder', Input, Output, async (params, trigger) => {
+      await trigger.ok(await lookup(params.number));
+    }, { description: 'Find an order by number.', readOnly: true, tags: ['orders'] })
+  ];
+}
+```
+
+Then discover them from Fluent chat:
+
+```ts
+chat.toolsFrom('OrdersService')
+```
+
+You can still attach individual service handlers explicitly:
 
 ```ts
 chat.service('OrdersService', 'lookupOrder')
@@ -59,7 +81,7 @@ Attaches every tool of the configured skill `orders` (YAML `skills`). See [Tools
 
 The final `AIChatResponse` is the model's last answer. Errors thrown by a tool don't fail the call: they're sent to the model as `{ "error": "…" }`, so it can react, for example by asking for a correct order number.
 
-With a conversation and the entity store, every call is recorded as `AIConversationToolCall` (name, arguments, status, latency) and `AIConversationToolResult`.
+Tool calls are recorded in trace records when trace/domain persistence is configured. Chatbots and agents also keep their own runtime records (messages, runs, events) separately from technical traces.
 
 ## Limits
 

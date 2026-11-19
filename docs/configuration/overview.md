@@ -38,15 +38,18 @@ prompts:
 |---|---|
 | [`ais`](./ais.md) | The models: provider, model, connection, capabilities, defaults |
 | [`prompts`](./prompts.md) | The prompt catalog |
-| [`conversations`](./conversations.md) | Where conversation history is stored |
+| [`chatbots`](./conversations.md) | Configured interactive assistants and session history |
+| `skills` | Reusable capability bundles for agents |
+| `agents` | Task/run harnesses with tools, policy, workspace, and transports |
+| `intelligence` | Validation and inference policy settings |
 | [`tracers`](./tracers.md) | Where traces go |
 
 ## Platform sections Intelligence uses
 
 | Section | Used for |
 |---|---|
-| `docs` + `entities` | Conversations, turns, messages, tool calls and inference runs, with `IntelligenceConversationsOntology` |
-| `blobs` | `withBlob(...)` inputs, prompts with a blob `source`, generated audio and images you store |
+| `docs` + `entities` | App data plus Intelligence domains such as `IntelligenceTrace`, `IntelligenceChatbot`, and `IntelligenceAgent` |
+| `blobs` | `withBlob(...)` inputs, prompts with a blob `source`, chatbot/agent files, generated audio/images, and agent artifacts |
 | `vectors` | Retrieval, with `embedding()` as the embedding function |
 | `mqs` | Running model calls in the background |
 

@@ -1,55 +1,73 @@
 ---
-title: conversations
+title: Chatbot configuration
 ---
 
-# `conversations`
+# Chatbot configuration
 
-Where conversation history is kept. Concepts: [Conversations](../concepts/conversations.md).
+The old `conversations:` configuration from the 0.8 documentation has been replaced by top-level `chatbots:` in Intelligence 0.9.
 
-```yaml
-conversations:
-  store:
-    type: entities   # memory (default) or entities
-```
-
-| Field | Description |
-|---|---|
-| `store.type` | `memory`: in the process, lost on restart. `entities`: as platform entities |
-
-## The entity store
-
-`entities` needs the conversations ontology and a `docs` backend:
+## Basic chatbot
 
 ```yaml
-docs:
-  - name: DEFAULT
-    type: memory   # or mongo, postgres
-
-entities:
-  backend: docs
-  ontologies:
-    - AppOntology                         # your own, if any
-    - IntelligenceConversationsOntology
+chatbots:
+  - name: support
+    type: conversation
+    model: DEFAULT
+    instructions:
+      - Help customers with short, factual answers.
+    history:
+      maxMessages: 20
+    http:
+      path: /support
 ```
 
-The ontology also enables [inference run](../guides/observability.md#inference-runs) recording, independently of the store type.
+## With tools and policy
 
-## Entities
-
-| Entity | Key fields |
-|---|---|
-| `AIConversation` | `key` (the conversation id), `status`, token totals, `modelCallCount`, `toolCallCount` |
-| `AIConversationTurn` | `conversationKey`, `index`, `status`, token totals |
-| `AIConversationMessage` | `conversationKey`, `turnIndex`, `index`, `role`, `content`, `toolCallId`, `toolCalls` |
-| `AIConversationAttachment` | `conversationKey`, `turnIndex`, file name, type and source |
-| `AIConversationToolCall` | `callId`, `name`, `kind`, `service`, `method`, `arguments`, `status`, `latencyMs`, `resultPreview` |
-| `AIConversationToolResult` | the result of a tool call |
-| `AIInferenceRun` | `operation`, `ai`, `provider`, `model`, tokens, `latencyMs`, `status`, `metadata` |
-
-They're exported for queries:
-
-```ts
-import { ConversationMessageEntity, InferenceRunEntity } from '@3flows/intelligence';
-
-const messages = await ConversationMessageEntity.find({ conversationKey: 'ticket-42' }).sort({ index: 1 }).all();
+```yaml
+chatbots:
+  - name: support
+    type: conversation
+    model: DEFAULT
+    instructions:
+      - Look up orders before answering order-status questions.
+    tools:
+      - service: SupportService
+        tags: [public]
+    toolPolicy:
+      denyTags: [internal]
+      allowDestructive: false
+      requireConfirmation: true
 ```
+
+## With prompts and AG-UI
+
+```yaml
+chatbots:
+  - name: support
+    type: conversation
+    model: DEFAULT
+    prompts:
+      - name: support.chatbot.base
+        version: v1
+    agui:
+      useHttp: api
+      path: /support/agui
+      interactions:
+        enabled: true
+```
+
+## Storage
+
+Chatbot runtime records live in `IntelligenceChatbotDomain` as sessions, messages, files, and reactions. Configure normal Platform storage/domains for your runtime as you would for other Platform-native domains.
+
+Do not configure old `conversations.store.type: entities`; that storage model and the old conversation ontology are not part of the 0.9 architecture.
+
+## Related configuration
+
+- `ais:` selects providers and models.
+- `prompts:` defines reusable prompt bundles.
+- `skills:` defines reusable capability bundles.
+- `agents:` defines task/run harnesses.
+- `intelligence.inference.require` enforces metadata, timeouts, or abort signals.
+
+See [Chatbots](../concepts/chatbots.md) and [Migration guide: 0.8 to 0.9](../migration-0.8-to-0.9.md).

@@ -1,98 +1,74 @@
 ---
-title: Conversations
+title: Conversations (legacy term)
 ---
 
-# Conversations
+# Conversations (legacy term)
 
-A model is [stateless](./models-for-developers.md#1-its-stateless). A conversation is your application remembering on its behalf: it keeps the messages and sends them along with every new question.
+In Intelligence 0.9, **chatbots** are the supported high-level conversation surface. This page remains to explain terminology and migration from older documentation.
 
-## Stateless and stateful, side by side
+The old internal `conversations:` configuration, `context.conversations().conversation(id)`, and entity-backed `AIConversation*` storage model belonged to the 0.8 line. They have been replaced by configured chatbots and separate chatbot domain records.
 
-```ts
-// One call. Nothing is remembered.
-await trigger.context.inference().chat().ask('My name is Ada.');
-await trigger.context.inference().chat().ask('What is my name?');   // doesn't know
+## What to use now
 
-// A conversation. The history is kept under the id.
-const conversation = trigger.context.conversations().conversation('ticket-42');
-await conversation.ask('My name is Ada.');
-await conversation.ask('What is my name?');                      // "Ada"
-```
-
-The id is yours. Use something from your domain: a ticket id, a chat session, a customer and a channel. The same id, in any request, on any instance with the same store, continues the same conversation.
-
-## What a turn does
-
-Every `ask` on a conversation is one **turn**:
-
-1. Load the history for the id.
-2. Build a chat call: history, then instructions, prompts, input and the new question.
-3. Call the model, and run tools if it asks for them.
-4. Store the user message, the tool calls and results, and the answer.
-
-The conversation chain has the same methods as `chat()`: `.prompt(...)`, `.instructions(...)`, `.with(...)`, `.service(...)`, `.stream(...)`. Instructions and prompts are sent with every turn, but not stored as messages. So a prompt can be improved, and existing conversations use the new version from their next turn.
-
-## Where the history lives
-
-YAML decides:
+Use [Chatbots](./chatbots.md) when you need remembered multi-turn interaction:
 
 ```yaml
-conversations:
-  store:
-    type: entities   # or memory, the default
+chatbots:
+  - name: support
+    type: conversation
+    model: DEFAULT
+    instructions:
+      - Help customers with short, factual answers.
+    history:
+      maxMessages: 20
+    http:
+      path: /support
 ```
 
-| Store | History lives | Survives restarts | Shared between instances |
-|---|---|---|---|
-| `memory` | in the process | no | no |
-| `entities` | in platform entities, backed by `docs` | yes | yes |
+The HTTP compatibility API may still use paths containing `/conversation`, but those paths operate on chatbot sessions. Internally, durable records are:
 
-With `entities`, Intelligence brings its own ontology, `IntelligenceConversationsOntology`. Register it next to your own:
+| 0.9 record | Purpose |
+| --- | --- |
+| `ChatbotSession` | One durable chatbot session/thread |
+| `ChatbotMessage` | User/model/tool messages in the session |
+| `ChatbotFile` | Files associated with chatbot interaction |
+| `ChatbotReaction` | Feedback/reactions |
+| `InferenceRun` / trace records | Technical model/tool evidence, separate from session records |
 
-```yaml
-docs:
-  - name: DEFAULT
-    type: memory   # or mongo, postgres
+## Why the change?
 
-entities:
-  backend: docs
-  ontologies:
-    - IntelligenceConversationsOntology
-```
+0.9 separates concerns:
 
-Then every conversation is queryable data:
+- Your application owns business state such as tickets, orders, cases, and decisions.
+- Chatbot domain records own interactive session state.
+- Agent domain records own task/run state.
+- Trace domain records own technical inference evidence.
 
-| Entity | One per |
-|---|---|
-| `AIConversation` | conversation, with token totals |
-| `AIConversationTurn` | `ask`, with status `pending`, `completed` or `failed`, and token totals |
-| `AIConversationMessage` | message: `user`, `assistant`, `tool` |
-| `AIConversationToolCall`, `AIConversationToolResult` | tool call the model made, and what came back |
-| `AIConversationAttachment` | file sent with a turn |
-| `AIInferenceRun` | model call, with tokens, latency and prompt versions |
+The old conversation entities mixed interactive history, tool details, and inference tracing too closely. The new model makes retention, auditing, and product behavior easier to reason about.
 
-Your code can read them like any other entity, for example to show a support agent the whole thread.
+## Migrating old code
 
-## Memory is a product decision
-
-Keeping everything forever is the default, and rarely what you want:
-
-- **Cost and limits.** Every turn resends the history. Long conversations get slow, expensive and eventually exceed the context window.
-- **Privacy.** A conversation stores what customers typed. That's personal data with a retention period.
-- **Relevance.** Old turns can mislead the model about the current question.
-
-Today, the history is sent in full. `conversation.clear()` removes it. For long-running threads, start a new conversation id per topic, or summarize old turns into input. See [Known gaps](../guides/known-gaps.md) for memory windows and compaction.
-
-## Chat with history you already have
-
-If the history lives in another system, like an email thread, you don't need a conversation. Pass it explicitly:
+### Before
 
 ```ts
-await trigger.context.inference().chat().messages(threadAsMessages).ask('Draft the next reply.');
+const conversation = trigger.context.conversations().conversation(`ticket-${ticket.id}`);
+const answer = await conversation.instructions('Help the customer.').ask(message);
 ```
 
-## Reviewer's view
+### After
 
-- **Which id?** It decides who shares a history. A conversation id derived from user input without a check is a data leak between customers.
-- **Which store?** `memory` in production means conversations disappear on every deploy.
-- **What's the retention?** Who deletes conversations, and when?
+Configure a chatbot and route requests through its session API or HTTP surface. For direct service code that does not need durable session records, use Fluent chat explicitly:
+
+```ts
+const answer = await trigger.context
+  .inference()
+  .chat()
+  .instructions('Help the customer.')
+  .metadata({ purpose: 'ticket-reply', subjectType: 'ticket', subjectId: ticket.id })
+  .timeout(10_000)
+  .ask(message);
+```
+
+If you need one remembered history per ticket, use a chatbot session id derived from the ticket id and clear that session according to your retention policy.
+
+See the [0.8 to 0.9 migration guide](../migration-0.8-to-0.9.md) for the full mapping.

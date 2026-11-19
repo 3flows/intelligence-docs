@@ -80,18 +80,20 @@ A reviewer needs to answer these questions in one read. That's what the vocabula
 The fluent API is written for the human who has to understand and approve the feature.
 
 ```ts
-await trigger.context.conversations()
-    .conversation(ticket.id)
+await trigger.context.inference()
+    .chat()
     .prompt('support.reply', { customer })
-    .service('OrdersService', 'lookupOrder')
+    .toolsFrom('OrdersService')
+    .metadata({ purpose: 'support-reply', subjectType: 'ticket', subjectId: ticket.id })
+    .timeout(10_000)
     .ask(message);
 ```
 
-Read top to bottom: a persistent conversation per ticket, the reviewed and versioned `support.reply` prompt, and exactly one thing the model may do on its own, which is look up an order. The agent writes the code. The human reads it, reviews it, and takes responsibility for it.
+Read top to bottom: a chat call for one ticket, the reviewed and versioned `support.reply` prompt, bounded operational metadata, a timeout, and model-facing tools discovered from one service. The agent writes the code. The human reads it, reviews it, and takes responsibility for it.
 
 ## Production-hardened, and observable
 
-Every call goes through the same path: capability selection, retries, tracing and usage recording. Turn on a tracer in YAML and every chat, choice and tool call appears as a span. Turn on the conversations ontology and every turn, message, tool call and token count is an entity you can query.
+Every call goes through the same path: capability selection, retries, tracing and usage recording. Turn on a tracer in YAML and every chat, choice and tool call appears as a span. Configure the Intelligence trace/chatbot/agent domains and runtime records become queryable without mixing technical evidence with business state.
 
 So when someone asks *"why did the assistant say that?"* or *"what did this cost last month?"*, there's an answer.
 

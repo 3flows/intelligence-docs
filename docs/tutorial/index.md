@@ -116,7 +116,7 @@ yarn step:01                       # a single step, with a real model
 ```
 
 :::note A preview in the samples
-The samples use `IntelligenceService` and `handler` from `steps/_shared/intelligence-service.ts`: a preview of a change proposed for `@3flows/intelligence`, which puts `inference()`, `conversations()` and `prompts()` into the trigger context. Once the library ships it, only the import changes.
+The current library exports `IntelligenceService`, `handler`, and `tool` directly from `@3flows/intelligence`. Older sample steps may still show the previous local wrapper; new code should import from the library and use `chatbots`, `agents`, and `workflows` for 0.9 concepts.
 :::
 
 Ready? To follow along in your own project, [set one up](./setup.md) first. Otherwise, start with [An intelligent service](./intelligent-service.md).

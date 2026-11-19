@@ -8,7 +8,7 @@ sidebar_label: Overview
 In an intelligent service, the entry points are in the trigger context:
 
 ```ts
-const { inference, conversations, prompts } = trigger.context;
+const { inference, prompts, agent, workflow } = trigger.context;
 ```
 
 Outside a service (scripts, evaluations, tests), they're static on `Intelligence`:
@@ -40,8 +40,10 @@ Intelligence.inference().video()                // text to video               �
 Intelligence.inference().ocr()                  // document to text            → audio-and-media.md
 Intelligence.inference().moderation()           // safety check                → moderation.md
 
-Intelligence.conversations().conversation(id?)  // chat with history           → conversations.md
+Intelligence.inference().collection(items)      // fan-out orchestration       → the-fluent-api.md
 Intelligence.prompts()                          // the prompt catalog          → ../configuration/prompts.md
+trigger.context.agent(name)                     // agent runs                  → ../concepts/agents.md
+trigger.context.workflow(name)                  // workflow runs               → ../concepts/workflows.md
 ```
 
 `Intelligence.inference()` also exposes the configured AIs directly, for inspection:

@@ -99,19 +99,23 @@ import { Intelligence } from '@3flows/intelligence';
 await Intelligence.run('./intelligence.yml');
 ```
 
-`Intelligence.run` starts the platform with the Intelligence sections (`ais`, `prompts`, `conversations`, `tracers`) registered. It's `Platform.run` plus a `ready` line in the log.
+`Intelligence.run` starts the platform with Intelligence sections such as `ais`, `prompts`, `chatbots`, `skills`, `agents`, `workflows`, and `tracers` registered. It's `Platform.run` plus a `ready` line in the log.
 
 The starter also has `main.test.ts`, which starts the platform and checks `/health` and the configured model. `yarn test` runs it, with no key needed.
 
-### `intelligence-service.ts`
+### Intelligent services
 
-The base class for intelligent services, and a matching `handler`. It puts `inference()`, `conversations()` and `prompts()` into the trigger context, next to the platform's `doc()`, `mq()` and `service()`:
+Import the base class and typed handler helpers from the library:
 
 ```ts
-const { inference, doc } = trigger.context;
+import { IntelligenceService, handler, tool } from '@3flows/intelligence';
 ```
 
-This file is a **preview** of a change proposed for `@3flows/intelligence`. Until the library ships it, the starter and the samples carry it. Afterwards, `import { IntelligenceService, handler } from '@3flows/intelligence'` replaces the local import, and the file goes away.
+`IntelligenceService` enriches the Platform trigger context. In handlers you can use `inference()`, `prompts()`, `skill()`, `agent()`, `workflow()`, and the normal Platform `doc()`, `blob()`, `service()`, etc.:
+
+```ts
+const { inference, doc, agent, workflow } = trigger.context;
+```
 
 ## Run it
 

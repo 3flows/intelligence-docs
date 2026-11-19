@@ -18,25 +18,23 @@ trigger.context.inference()
 
 Once you can read one chain, you can read all of them.
 
-## Three entry points, in the trigger context
+## Entry points in the trigger context
 
-An **intelligent service** (a service that extends `IntelligenceService`) finds three more members in its trigger context, next to the platform's `doc()`, `mq()`, `blob()` and `service()`:
+An **intelligent service** (a service that extends `IntelligenceService`) finds Intelligence members in its trigger context, next to the platform's `doc()`, `mq()`, `blob()` and `service()`:
 
 | Entry point | For |
 |---|---|
-| `inference()` | Every stateless capability: `chat`, `extract`, `choice`, `check`, `score`, `embedding`, `reranker`, `transcriber`, `speech`, `image`, `video`, `ocr`, `moderation` |
-| `conversations()` | Stateful chat: `.conversation(id)` remembers the history |
+| `inference()` | Every Fluent capability: `chat`, `extract`, `choice`, `check`, `score`, `embedding`, `reranker`, `transcriber`, `speech`, `image`, `video`, `ocr`, `moderation`, and `collection` |
 | `prompts()` | The prompt catalog from YAML: `has`, `get`, `render` |
+| `skill(name)` / `skills()` | Reusable declarative capability bundles |
+| `agent(name)` / `agents()` | Task/run agent harnesses |
+| `workflow(name)` / `workflows()` | Workflow orchestration |
 
 ```ts
-const { inference, conversations, doc } = trigger.context;
+const { inference, prompts, agent, workflow, doc } = trigger.context;
 ```
 
-One context, one vocabulary: the model is reached like the database. Outside a service (in scripts, evaluations and tests), the same entry points are static: `Intelligence.inference()`, `Intelligence.conversations()`, `Intelligence.prompts()`.
-
-:::note Preview
-Putting `inference()`, `conversations()` and `prompts()` into the trigger context is a change proposed for `@3flows/intelligence`. Until it ships, the [samples](https://github.com/3flows/intelligence-samples) carry it in `_shared/intelligence-service.ts`. The static entry points work today.
-:::
+One context, one vocabulary: model calls, agents, workflows, and storage are reached like other Platform primitives. Outside a service, use static convenience APIs where available, such as `Intelligence.inference()` and `Intelligence.prompts()`.
 
 ## The shared vocabulary
 
@@ -60,7 +58,7 @@ A chain does nothing until its terminal verb. The verb says what kind of answer 
 
 | Capability | Verb | Returns |
 |---|---|---|
-| `chat()`, `conversation(id)` | `.ask(prompt)` / `.stream(prompt)` | text / a stream of events |
+| `chat()` | `.ask(prompt)` / `.stream(prompt)` | text / an `InferenceStream` |
 | `extract(name)` | `.ask(prompt)` | a value of your schema's type |
 | `choice(name)` | `.ask(prompt)` | `{ value, confidence, reason }` with `value` one of the options, or a list for `manyOf` |
 | `check(name)` | `.ask(prompt)` | `{ value: boolean, confidence, reason }` |
@@ -90,7 +88,7 @@ await support.with(ticketA).ask('Draft a reply.');
 await support.with(ticketB).ask('Draft a reply.');
 ```
 
-A shared chain carries **configuration**, never history. History is what [conversations](./conversations.md) are for.
+A shared chain carries **configuration**, never history. Durable multi-turn history belongs to configured [chatbots](./chatbots.md).
 
 ## Names are for people
 

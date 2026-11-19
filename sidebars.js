@@ -82,6 +82,15 @@ const sidebars = {
     'why',
     {
       type: 'category',
+      label: 'Release 0.9',
+      collapsed: false,
+      items: [
+        'whats-new-0.9',
+        'migration-0.8-to-0.9'
+      ]
+    },
+    {
+      type: 'category',
       label: 'Core Concepts',
       collapsed: true,
       items: [
@@ -90,6 +99,10 @@ const sidebars = {
         'concepts/the-fluent-api',
         'concepts/context-and-prompts',
         'concepts/language-into-data',
+        'concepts/chatbots',
+        'concepts/agents',
+        'concepts/skills',
+        'concepts/workflows',
         'concepts/conversations',
         'concepts/tools',
         'concepts/retrieval',

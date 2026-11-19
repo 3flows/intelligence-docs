@@ -1,62 +1,60 @@
 ---
-title: conversations()
+title: Chatbot conversation compatibility
 ---
 
-# `conversations().conversation(id)`
+# Chatbot conversation compatibility
 
-A chat that remembers. Every `ask` loads the history for `id`, sends it with the new question, and stores the question and the answer. Concepts: [Conversations](../concepts/conversations.md).
+The old `conversations().conversation(id)` Fluent-style API is no longer the primary 0.9 surface. Use configured `chatbots:` for durable multi-turn interaction and Fluent `chat()` for direct one-off model calls.
 
-```ts
-const conversation = Intelligence.conversations().conversation(`ticket-${ticket.id}`);
+The word `conversation` still appears in HTTP compatibility routes for chatbots. That is route compatibility, not the old internal conversation store.
 
-await conversation.prompt('support.reply').ask('My order A-1042 is late.');
-await conversation.prompt('support.reply').ask('Can you check it again?');   // sees the first turn
-
-conversation.messages();   // the history, in memory
-```
-
-`conversation()` without an id creates a new conversation with a random id; read it from `conversation.id`.
-
-## Methods
-
-All methods of [`chat()`](./chat.md), except `messages(...)` and `inputs(...)`:
-
-`model`, `instructions`, `prompt`, `with`, `withFile`, `withBlob`, `tools`, `service`, `services`, `skills`, `maxToolRounds`, `options`, `metadata`, `labels`, `context`, `chatContext`, `trace`, `observabilityTag`.
-
-Like every chain, the conversation chain is immutable: `conversation.prompt(...)` returns a new chain **for the same id**. Configuration isn't stored with the conversation, so attach it on every turn, typically from one helper:
-
-```ts
-const assistant = (ticketId: string) => Intelligence.conversations()
-    .conversation(`ticket-${ticketId}`)
-    .prompt('support.reply')
-    .service('OrdersService', 'lookupOrder');
-
-await assistant(ticket.id).ask(message);
-```
-
-| Member | Description |
-|---|---|
-| `.id` | The conversation id |
-| `.ask(prompt)` | One turn. Resolves with the `AIChatResponse` |
-| `.stream(prompt)` | One turn, streamed. The answer is stored when the `done` event arrives |
-| `.messages(): AIMessage[]` | The history known to this process |
-| `.clear(): Promise<void>` | Delete the history, and with the entity store all turns, messages, tool calls, attachments and runs |
-
-## Stores
+## Configure a chatbot
 
 ```yaml
-conversations:
-  store:
-    type: entities   # memory (default) or entities
+chatbots:
+  - name: support
+    type: conversation
+    model: DEFAULT
+    instructions:
+      - Help customers with concise, factual answers.
+    history:
+      maxMessages: 20
+    http:
+      path: /support
 ```
 
-With `entities`, register the ontology and give it a `docs` backend. See [`conversations`](../configuration/conversations.md).
+A typical HTTP surface includes compatibility routes shaped like:
 
-## Turn lifecycle
+```text
+POST /support/conversation
+POST /support/conversation/:id/stream
+POST /support/conversation/:id/file
+```
 
-1. A turn is created with status `pending`.
-2. The user message is stored.
-3. The chat call runs, including tools.
-4. The answer is stored and the turn becomes `completed`, or `failed` if the call throws.
+Internally these routes create or continue `ChatbotSession` records and write `ChatbotMessage` records.
 
-With the entity store, tool calls, tool results and attachments of the turn are stored as their own entities, and every model call becomes an `AIInferenceRun` linked to the conversation and turn.
+## Direct calls without memory
+
+If you do not need chatbot session records, call Fluent chat directly:
+
+```ts
+const response = await trigger.context
+  .inference()
+  .chat()
+  .instructions('Help the customer.')
+  .metadata({ purpose: 'support-reply', subjectType: 'ticket', subjectId: ticket.id })
+  .timeout(10_000)
+  .ask(message);
+```
+
+## Migration mapping
+
+| Old API | 0.9 replacement |
+| --- | --- |
+| `conversations:` YAML | `chatbots:` YAML |
+| `conversations().conversation(id).ask(...)` | chatbot session call, chatbot HTTP route, or direct `inference().chat()` |
+| `conversation.clear()` | delete/expire the relevant chatbot session and files according to retention policy |
+| `AIConversation*` entities | `ChatbotSession`, `ChatbotMessage`, `ChatbotFile`, `ChatbotReaction` |
+| conversation tool-call records | trace domain model/tool records plus chatbot messages |
+
+See [Chatbots](../concepts/chatbots.md) and the [0.8 to 0.9 migration guide](../migration-0.8-to-0.9.md).
