@@ -16,7 +16,8 @@ await trigger.context.inference()
     .prompt('support.reply', { shop: 'Velo Bikes' })   // policy, from the catalog
     .instructions('Answer in the customer’s language.') // policy, inline
     .with(ticket)                                       // data
-    .ask('Draft a reply to this ticket.');              // the task
+    .question('Draft a reply to this ticket.')          // the task
+    .answer();
 ```
 
 | Place | Method | Holds | Sent as |
@@ -24,7 +25,7 @@ await trigger.context.inference()
 | **Instructions** | `.instructions(...)` | How the model should behave, in this code path | system message |
 | **Prompt** | `.prompt(name, vars)` | How the model should behave, reviewed and versioned in YAML | system message, after `instructions` |
 | **Input** | `.with(...)`, `.withFile(...)`, `.withBlob(...)` | What the model works on | user messages, in order |
-| **Question** | `.ask(...)` | What to do with it, this time | the last user message |
+| **Question** | `.question(...)` | What to do with it, this time | the last user message |
 
 A good test for where something belongs: **would it be the same for every customer?** Then it's instructions or a prompt. **Is it about this customer?** Then it's input.
 
@@ -32,7 +33,7 @@ A good test for where something belongs: **would it be the same for every custom
 
 **Review.** A reviewer reads instructions and prompts as policy: tone, rules, limits. They read `.with(...)` as data flow: *which data leaves our system in this call?* Mixing them in one template string hides both.
 
-**Safety.** Text from customers can contain instructions of its own ("ignore all previous instructions and…"). That's called **prompt injection**. Keeping customer text in input, never concatenated into instructions, is the first defense. Add moderation and policy checks at service boundaries for sensitive flows.
+**Safety.** Text from customers can contain instructions of its own ("ignore all previous instructions and…"). That's called **prompt injection**. Keeping customer text in input, never concatenated into instructions, is the first defense. It isn't a complete one: see [Guard the input](../tutorial/guard-the-input.md).
 
 **Reuse.** Chains are [immutable](./the-fluent-api.md#chains-are-immutable). Build the policy part once, add data per call.
 
@@ -83,10 +84,10 @@ Variables use `{{ name }}` and dot paths (`{{ customer.name }}`). Objects render
 chat.messages([
     { role: 'user', content: 'My order is late.' },
     { role: 'assistant', content: 'Sorry about that. What is the order number?' }
-]).ask('It is A-1042.');
+]).question('It is A-1042.').answer();
 ```
 
-That's useful when the history already lives somewhere else, for example in an email thread. When a human-facing session should own the history, use a [chatbot](./chatbots.md).
+That's how an application sends a history it owns: an email thread, or the chat of a ticket. `History.window(messages, { maxMessages })` keeps it bounded. The tutorial builds this in [Remember](../tutorial/remember.md). When nothing but the conversation needs to be kept, a [chatbot](./chatbots.md) holds the history itself.
 
 ## How much context?
 

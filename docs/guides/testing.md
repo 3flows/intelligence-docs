@@ -16,9 +16,9 @@ A provider is a registered class. This one is about 100 lines, and the [samples]
 ```ts title="scripted-ai.ts"
 import { Register } from '@3flows/platform';
 import {
-    AI, AICapabilitiesConfiguration, AIChatRequest, AIChatResponse, AIConfiguration,
-    AIEmbeddingRequest, AIEmbeddingResponse, AIModerationRequest, AIModerationResponse,
-    AIRerankRequest, AIRerankResponse, AIStreamEvent
+    AI, AICapabilitiesConfiguration, AIChatRequest, AIChatRequestChain, AIChatResponse, AIConfiguration,
+    AIEmbeddingRequestChain, AIEmbeddingResponse, AIModerationRequestChain, AIModerationResponse,
+    AIRerankerRequestChain, AIRerankResponse, AIStreamEvent
 } from '@3flows/intelligence';
 
 /** What the scripted model answers: text, a structured value, or a full response with tool calls. */
@@ -53,7 +53,9 @@ export class ScriptedAI extends AI {
         return ['chat', 'streaming', 'structured', 'tools'];
     }
 
-    protected async doChat(request: AIChatRequest): Promise<AIChatResponse> {
+    // A provider receives the request as a chain; _request() is the plain request it carries.
+    protected async doChat(chain: AIChatRequestChain): Promise<AIChatResponse> {
+        const request = chain._request();
         // Copy: the tool loop keeps appending to the same messages array.
         ScriptedAI.requests.push({ ...request, messages: [...request.messages], ai: this.configuration.name });
         const answer = ScriptedAI.script(request);
@@ -63,22 +65,29 @@ export class ScriptedAI extends AI {
         return { text: JSON.stringify(answer), parsed: answer, usage };   // a structured answer
     }
 
-    protected async doStream(request: AIChatRequest): Promise<AsyncIterable<AIStreamEvent>> {
-        const response = await this.doChat(request);
+    protected async doStream(chain: AIChatRequestChain): Promise<AsyncIterable<AIStreamEvent>> {
+        const response = await this.doChat(chain);
         return (async function* () {
             for (const word of (response.text ?? '').split(/(?<= )/)) yield { type: 'text.delta' as const, text: word };
+            // Like a real provider: a requested tool call is announced in the stream, then completed.
+            for (const toolCall of response.toolCalls ?? []) {
+                yield { type: 'tool.call.started' as const, toolCallId: toolCall.id, name: toolCall.name };
+                yield { type: 'tool.call.completed' as const, toolCall };
+            }
             yield { type: 'done' as const, response };
         })();
     }
 
     /** A crude but deterministic embedding: letter frequencies. Similar words, similar vectors. */
-    protected async doEmbed(request: AIEmbeddingRequest): Promise<AIEmbeddingResponse> {
+    protected async doEmbed(chain: AIEmbeddingRequestChain): Promise<AIEmbeddingResponse> {
+        const request = chain._request();
         const texts = Array.isArray(request.input) ? request.input : [request.input];
         return { embeddings: texts.map((text, index) => ({ index, text, vector: letterVector(text) })) };
     }
 
     /** Rank by shared words. */
-    protected async doRerank(request: AIRerankRequest): Promise<AIRerankResponse> {
+    protected async doRerank(chain: AIRerankerRequestChain): Promise<AIRerankResponse> {
+        const request = chain._request();
         const query = new Set(words(request.query));
         const results = request.documents
             .map((document, index) => {
@@ -90,7 +99,8 @@ export class ScriptedAI extends AI {
         return { results };
     }
 
-    protected async doModerate(request: AIModerationRequest): Promise<AIModerationResponse> {
+    protected async doModerate(chain: AIModerationRequestChain): Promise<AIModerationResponse> {
+        const request = chain._request();
         const texts = Array.isArray(request.input) ? request.input : [request.input];
         const results = texts.map((text) => ({ flagged: ScriptedAI.flagged(text) }));
         return { flagged: results.some((result) => result.flagged), results };
@@ -118,12 +128,13 @@ Tests shouldn't need their own copy of the configuration. Load the application's
 
 ```ts title="offline.ts"
 import { readFile } from 'node:fs/promises';
-import { Configuration, Platform } from '@3flows/platform';
+import { Configuration } from '@3flows/platform';
+import { Intelligence } from '@3flows/intelligence';
 import './scripted-ai.js';
 
-/** Run the platform with the given YAML, but with every AI replaced by the scripted provider. */
+/** Run the app with the given YAML, but with every AI replaced by the scripted provider. */
 export async function runOffline(path: string): Promise<void> {
-    await Platform.run({
+    await Intelligence.run({
         load: async () => {
             const yaml = Configuration.parse(await readFile(path, 'utf8')).toJSON() as any;
             yaml.ais = (yaml.ais ?? []).map((ai: any) => ({ ...ai, provider: 'scripted', connection: {} }));
@@ -134,6 +145,26 @@ export async function runOffline(path: string): Promise<void> {
 ```
 
 Names, models and declared capabilities stay the same, so `.model('fast')` and capability selection behave exactly as in production. Only the provider changes.
+
+`Intelligence.run`, not `Platform.run`: only then are chatbots and agents mounted, and the configuration validated, as in production.
+
+## The library's testing kit
+
+`@3flows/intelligence/testing` ships the same approach ready-made, for chat and structured answers:
+
+```ts
+import { ScriptedAI, collectStream, expectPrompt, runOffline } from '@3flows/intelligence/testing';
+
+await runOffline('./intelligence.yml');                       // the real YAML, every AI scripted
+
+ScriptedAI.respond((request) => 'Hi Ada.');                   // answer by function, for the AI named DEFAULT
+ScriptedAI.queue([{ structured: { value: 'billing' } }, 'OK'], 'triage');   // or a queue of answers, per AI
+ScriptedAI.requests();                                        // what was asked: { ai, operation, request }
+expectPrompt(ScriptedAI.requests(), /support team of Velo/);  // an assertion on instructions and messages
+ScriptedAI.clear();
+```
+
+The samples use their own scripted provider, shown above, because the tutorial also scripts embeddings, reranking and moderation. Use one of the two per project: both register the provider name `scripted`.
 
 ## A test
 
@@ -190,4 +221,4 @@ Recognizing the call in a script: `request.responseSchemaName` is the decision o
 
 ## What not to assert
 
-The *wording* of an answer from a real model. If a test needs a real model, it's an evaluation: keep it out of `yarn test`, and run it deliberately.
+The *wording* of an answer from a real model. If a test needs a real model, it's an evaluation: keep it out of `yarn test`, and run it deliberately. Part 5 of the tutorial builds one, starting with [Measure before you improve](../tutorial/measure.md).

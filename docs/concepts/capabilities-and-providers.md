@@ -33,10 +33,10 @@ ais:
 
 | Capability | Used by | What it does |
 |---|---|---|
-| `chat` | `chat()`, `conversation()` | Text in, text out |
-| `streaming` | `.stream(...)` | Text out, token by token |
+| `chat` | `chat()`, chatbots, agents | Text in, text out |
+| `streaming` | `.stream()` | Text out, token by token |
 | `structured` | `extract()`, and the fallback for `choice`, `check`, `score` | Output that matches a schema |
-| `tools` | `chat()` with `.tools(...)`, `.service(...)`, `.skills(...)` | The model may request function calls |
+| `tools` | `chat()` with `.tools(...)`, `.service(...)`, `.toolsFrom(...)`; chatbots and agents with tools | The model may request function calls |
 | `vision` | (image input) | The model understands images |
 | `embedding` | `embedding()` | Text to vectors |
 | `reranking` | `reranker()` | Sort documents by relevance to a query |
@@ -57,7 +57,7 @@ When a chain runs, it asks for a capability. The rules are short:
 3. **Otherwise:** use the first configured AI that has it.
 4. **Nothing has it:** fail with `No AI is defined with capability …`.
 
-So with the YAML above, `chat().ask(...)` goes to `DEFAULT`, and `embedding().embed()` goes to `embeddings`, without either call naming a model. Name a model with `.model(...)` only when the choice is a business decision, like "use the cheap one for tagging".
+So with the YAML above, `chat().answer()` goes to `DEFAULT`, and `embedding().embed()` goes to `embeddings`, without either call naming a model. Name a model with `.model(...)` only when the choice is a business decision, like "use the cheap one for tagging".
 
 Some capabilities have a preferred and a fallback path:
 

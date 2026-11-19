@@ -61,7 +61,7 @@ blobs:
 
 | Chain | Accepts |
 |---|---|
-| `chat`, `extract`, `choice`, `check`, `score`, conversations | text and text files. Binary files (images, PDFs) are rejected by the current providers: `AI … does not support file input for this operation` |
+| `chat`, `extract`, `choice`, `check`, `score` | text and text files. Whether binary files (images, PDFs) are accepted depends on the provider and the operation; where they aren't, the call fails with `AI … does not support file input for this operation` |
 | `transcriber` | one audio file |
 | `ocr`, `image`, `video` | files as provider input |
 

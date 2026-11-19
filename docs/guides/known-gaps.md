@@ -4,40 +4,56 @@ title: Known gaps
 
 # Known gaps
 
-This page tracks current 0.9 limitations. Older documentation and tutorial chapters may still mention 0.8-era conversations; for new apps use the concepts in [What's new in 0.9](../whats-new-0.9.md).
+This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.4`, and how to work around it. Mention a workaround in the reviewer's view when you use one.
 
-## Samples
+## Chatbots and agents
 
-The `starter/` sample follows the current 0.9 surfaces: library-exported `IntelligenceService`, `handler`, `tool`, `ais`, Fluent inference, `chatbots`, `skills`, `agents`, and workflows.
+**A chatbot reads only the first ten stored messages of a session.** A session stores its instructions, the greeting, and two messages per turn; after about four turns, the model no longer gets the whole conversation, and `GET /conversation/:id` doesn't list all messages. `history.maxMessages` doesn't change that. *Workaround:* keep chatbot sessions short, or keep the history in your own service and send it with `chat().messages(...)`, as the tutorial's ticket chat does.
 
-## Evaluations
+**`agent(name).run(id).events()` returns only the first ten recorded events of a run.** *Workaround:* collect the events from `stream()` while the agent works.
 
-There is still no full product-level evaluation service in the library. The samples use a small app-local harness built from Fluent inference: datasets as JSON, reports as JSON, and judges as `check` / `score` calls. For deterministic unit tests, prefer `@3flows/intelligence/testing` (`ScriptedAI`, `runOffline`, `expectPrompt`, `collectStream`).
+Both have the same cause: the platform's entity queries return ten records by default. In your own queries on the Intelligence domains, use `.limit(0)` to read all records.
+
+**`run()` on an agent records no tool events.** Only `stream()` yields and records `tool.started` and `tool.completed`.
+
+**Chatbot retention isn't automatic.** Sessions are kept until they're deleted, with `session(id).delete()` or `DELETE /conversation/:id`.
+
+**A chatbot's tools can't be scoped per call.** They get what the model passes. Tools that must be limited to one user's data belong in a service that knows the user.
+
+## Workflows
+
+**Value resolvers of service and agent steps aren't typed.** In `s.service(…).input(({ input }) => …)` and `s.agent(…).input(…)`, annotate the parameter: `({ input }: { input: Intake }) => …`. `s.map(...)` and the predicate of `when(...)` are typed.
+
+**No YAML section.** Workflows are defined in code and registered by a service.
 
 ## Inputs
 
-Provider support varies by capability and modality. The chains exist for `chat`, `extract`, `choice`, `check`, `score`, `embedding`, `reranker`, `transcriber`, `speech`, `image`, `ocr`, `moderation`, and `video`, but not every bundled provider implements every capability.
+**Binary files.** Whether an image or a PDF can be sent depends on the provider and the operation. Where it can't, the call fails with `AI … does not support file input for this operation`. Text files (`.txt`, `.md`, `.json`, `.csv`, …) are read and sent as text. *Workaround:* convert first, for example extract the text of a PDF before calling `extract`.
 
-- Binary file support depends on the selected provider and capability.
-- OCR/video may require a custom provider until a configured AI advertises those capabilities.
-- Decision chains should generally receive text or structured text context, not raw binary data.
+**Decisions don't read binary files.** `choice`, `check` and `score` send the name and type of non-text inputs, not their content.
 
-## Provider combinations
+## Capabilities without a bundled provider
 
-Anthropic streaming with tools or response schemas currently fails clearly instead of silently degrading. Use non-streaming Anthropic calls for those combinations until native support is implemented.
+**`ocr` and `video`.** The chains exist; no bundled provider implements them. *Workaround:* a [custom provider](./custom-provider.md).
 
-Structured-output parse failures now throw clear provider/model-context errors. Handle invalid model output explicitly.
+## Providers
 
-## Chatbot and agent resume semantics
+**Anthropic: streaming with tools or a response schema fails**, with a clear error. Use `.answer()` for those calls.
 
-Chatbots support conversation/session interactions and AG-UI exposure. Agents support task runs, events, `waiting`, `resume`, and `steer`. Current confirmation flows are explicit structured-context flows: a destructive or confirmation-required tool can put a run into `waiting`, and a later `resume()` supplies confirmation context. Full live collaborative editing semantics remain application-specific.
+## Evaluations
+
+There's no evaluation API in the library. The samples have a small harness (`_shared/evaluation.ts`, `_shared/triage-eval.ts`) built from the fluent API: datasets as JSON, reports as JSON, judges as `check` and `score`.
+
+## Versions
+
+**Intelligence names the exact Platform version it needs.** `@3flows/intelligence@0.9.0-next.4` depends on `@3flows/platform@0.9.0-next.31`. An application that asks for another Platform version gets two Platforms in `node_modules`, and services registered in one aren't found by the other. Pin both.
 
 ## Local models
 
-Reasoning models need room. Models that think before answering can spend output tokens on reasoning. With a small `maxTokens`, structured answers may arrive empty or cut off. Use a non-reasoning model for strict decisions or increase output token limits.
+**Reasoning models need room.** Models that think before answering spend output tokens on reasoning. With a small `maxTokens`, structured answers arrive empty or cut off: *Structured response … did not match schema*. *Workaround:* a non-reasoning model for decisions, or a larger `maxTokens`.
 
-LM Studio can answer `500` to parallel requests while it is still loading a model. Configure retry in AI defaults for local smoke tests.
+**Parallel requests while a model loads.** LM Studio can answer `500` to parallel requests while it's still loading a model. `retry` in the AI's `defaults` covers it.
 
-## Platform validation
+## Platform
 
-Platform handlers validate input against the schema but may pass the original input shape through. Do not rely on schema defaults being materialized unless your Platform version guarantees it; default optional fields in code when necessary.
+**Handlers don't apply Zod defaults.** Platform handlers validate their input against the schema, but pass the input on as it was sent, so `.default(...)` values never arrive. *Workaround:* mark the field `.optional()` and default it in code: `async ({ attachments = [], ...ticket }, trigger) => …`.

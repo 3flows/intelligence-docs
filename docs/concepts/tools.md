@@ -31,7 +31,8 @@ On the platform, your application logic already lives in service handlers, with 
 await trigger.context.inference()
     .chat()
     .service('OrdersService', 'lookupOrder')
-    .ask('Where is my order A-1042?');
+    .question('Where is my order A-1042?')
+    .answer();
 ```
 
 ```ts
@@ -63,9 +64,20 @@ chat.tools({
 
 Prefer services for anything with business logic: they're tested, described and reusable.
 
-## Skills
+## Marked tools: `tool(...)`
 
-A **skill** is a registered group of tools, configured under `skills` in YAML and attached by name with `.skills('orders', 'shipping')`. Skills predate service tools; for new code, `.service(...)` is usually simpler.
+A handler that is *meant* for models gets its description where it's defined. `tool(...)` is `handler(...)` with a name and a description written for a model, and a few facts about it:
+
+```ts
+tool('searchArticles', SearchQuery, t.array(Passage), async ({ query }, trigger) => { /* … */ }, {
+    name: 'search_help_center',
+    description: 'Search the help center: returns, shipping, assembly, sizes and care.',
+    readOnly: true,
+    tags: ['public']
+})
+```
+
+Marked tools are found by service and tag: `chat().toolsFrom('HelpCenterService', { tags: ['public'] })` in code, and `tools: [{ service: HelpCenterService, tags: [public] }]` in the YAML of a [chatbot](./chatbots.md), a [skill](./skills.md) or an [agent](./agents.md). A handler that isn't marked is never found this way.
 
 ## Tools and responsibility
 
@@ -79,9 +91,10 @@ Tools are where an AI feature stops *talking* and starts *acting*. That changes 
 
 Rules that keep this reviewable:
 
-- **List tools explicitly per call.** Never "all handlers of a service". The chain shows exactly what the model may do.
+- **Make the tool list explicit.** Per call with `.tools(...)` and `.service(...)`, or by marking handlers with `tool(...)` and selecting them by tag. Never "every handler of a service": discovery only finds handlers that were marked as tools on purpose.
+- **Say what a tool does to data.** `readOnly`, `destructive` and `requiresConfirmation` on `tool(...)` let a chatbot's `toolPolicy` or an agent's `policy` keep writing tools out, or ask a person first.
 - **Scope tools to the user.** A tool that takes an order id should check that the order belongs to the current customer. The model will pass whatever id the customer typed.
-- **Keep irreversible actions out of the loop.** Let the model *propose* ("refund 20 €?") and let a human or a deterministic rule confirm. A [flow](https://3flows.github.io/platform-docs/docs/tutorial/flows) with a `waitFor` is a good shape for that.
+- **Keep irreversible actions out of the loop.** Let the model *propose* ("refund 20 €?") and let a human or a deterministic rule confirm. A [workflow](./workflows.md) that waits for the approval is a good shape for that.
 - **Bound the loop.** `maxToolRounds` limits cost and runaway behavior.
 
 ## Reviewer's view

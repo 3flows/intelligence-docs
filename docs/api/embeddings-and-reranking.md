@@ -23,9 +23,9 @@ const { vectors } = await Intelligence.inference()
 
 | Method | Description |
 |---|---|
-| `.with(input: string \| string[])` | One text, or a batch |
+| `.with(input: string \| string[])` / `.input(...)` | One text, or a batch |
 | `.dimensions(n: number)` | Shorter vectors, where the model supports it (`text-embedding-3-*`) |
-| `.model`, `.options`, `.metadata`, `.labels`, `.context`, `.trace`, `.observabilityTag` | [Shared](./overview.md#methods-shared-by-all-chains) |
+| `.model`, `.options`, `.timeout`, `.signal`, `.metadata`, `.labels`, `.context`, `.trace`, `.observabilityTag` | [Shared](./overview.md#methods-shared-by-all-chains) |
 
 ### `.embed(): Promise<InferenceEmbeddingResponse>`
 
@@ -64,7 +64,7 @@ const ranked = await Intelligence.inference()
         'Change your display name in your profile.'
     ])
     .topK(2)
-    .rank();
+    .rerank();
 
 ranked.results[0].index;     // position in the input
 ranked.results[0].score;     // relevance
@@ -74,7 +74,7 @@ ranked.results[0].document;  // the document
 | Method | Description |
 |---|---|
 | `.query(query: string)` | What the documents should answer. Required |
-| `.with(documents)` | Strings, or `{ id?, text, metadata? }`. Required |
+| `.with(documents)` / `.documents(...)` | Strings, or `{ id?, text, metadata? }`. Required |
 | `.with(items, { text, id?, metadata? })` | Any objects, with a mapper |
 | `.topK(n)` / `.topN(n)` | Return the best `n` |
 
@@ -82,6 +82,6 @@ ranked.results[0].document;  // the document
 .with(articles, { text: (a) => a.body, id: (a) => a.slug })
 ```
 
-### `.rank(): Promise<InferenceRerankResponse>`
+### `.rerank(): Promise<InferenceRerankResponse>`
 
 `results`: `{ index, score, document, id?, metadata? }[]`, best first. Use `index` to map back to your input.

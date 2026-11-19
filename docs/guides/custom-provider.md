@@ -4,7 +4,7 @@ title: Writing a provider
 
 # Writing a provider
 
-A provider adapts one vendor's API to the capabilities of the fluent API. You need one when a vendor isn't supported yet, when a company gateway speaks its own protocol, when a capability has no built-in provider (`ocr`, `video`), or for tests.
+A provider adapts one vendor's API to the capabilities of the fluent API. You need one when a vendor isn't supported yet, when a company gateway speaks its own protocol, when a capability has no bundled provider (`ocr`, `video`), or for tests.
 
 ## The shape
 
@@ -12,7 +12,7 @@ A provider is a class that extends `AI`, registered under the namespace `ai`:
 
 ```ts title="acme-ai.ts"
 import { Register } from '@3flows/platform';
-import { AI, AICapabilitiesConfiguration, AIChatRequest, AIChatResponse, AIConfiguration } from '@3flows/intelligence';
+import { AI, AICapabilitiesConfiguration, AIChatRequestChain, AIChatResponse, AIConfiguration } from '@3flows/intelligence';
 
 @Register('acme', 'ai')                 // provider: acme
 export class AcmeAI extends AI {
@@ -25,7 +25,9 @@ export class AcmeAI extends AI {
         return ['chat', 'structured'];
     }
 
-    protected async doChat(request: AIChatRequest): Promise<AIChatResponse> {
+    // A provider receives the request as a chain; _request() is the plain request it carries.
+    protected async doChat(chain: AIChatRequestChain): Promise<AIChatResponse> {
+        const request = chain._request();
         const options = this.mergeOptions(request);      // AI defaults + per-call options
         const answer = await this.withRetry(
             () => this.http()
@@ -34,7 +36,8 @@ export class AcmeAI extends AI {
                 .bearer(this.configuration.connection?.apiKey as string)
                 .data({ model: this.configuration.model, messages: request.messages, temperature: options.temperature })
                 .post<{ text: string; tokens: { in: number; out: number } }>(),
-            options.retry
+            options.retry,
+            options.signal
         );
         return {
             text: answer.text,
@@ -60,18 +63,18 @@ Import the file in `main.ts` so the class is registered before the platform star
 
 ## What to implement
 
-Override the `do…` methods for the capabilities you support. Everything else fails with a clear *does not support* error.
+Override the `do…` methods for the capabilities you support. Each gets its request as a chain, with the plain request in `chain._request()`. Everything else fails with a clear *does not support* error.
 
 | Method | Capability |
 |---|---|
-| `doChat(request)` | `chat`, `tools` (read `request.tools`, return `toolCalls`), and by default `structured` |
-| `doStream(request)` | `streaming`: return an `AsyncIterable<AIStreamEvent>` ending with `done` |
-| `doStructured(request)` | `structured`, if the vendor has a native mode. The default calls `doChat` with `responseSchema` and parses the text |
+| `doChat(chain)` | `chat`, `tools` (read `request.tools`, return `toolCalls`), and by default `structured` |
+| `doStream(chain)` | `streaming`: return an `AsyncIterable<AIStreamEvent>` ending with `done`. Announce tool calls with `tool.call.started` and `tool.call.completed` |
+| `doStructured(chain)` | `structured`, if the vendor has a native mode. The default calls `doChat` with `responseSchema` and parses the text |
 | `doEmbed`, `doRerank`, `doTranscribe`, `doSpeech`, `doImage`, `doVideo`, `doOCR`, `doModerate` | The other capabilities |
 | `doChoice`, `doScore`, `doNoul` | Native decisions |
 | `discoverCapabilities()` | Optional: ask the vendor what the model supports, and set `this.discovered` |
 
-Don't override the public methods (`chat`, `embed`, …). They wrap your `do…` methods with tracing and inference-run recording, so a new provider is observable from the first call.
+Don't override the public methods (`chat`, `embed`, …). They wrap your `do…` methods with tracing and trace recording, so a new provider is observable from the first call.
 
 ## What you get from `AI`
 
@@ -79,7 +82,7 @@ Don't override the public methods (`chat`, `embed`, …). They wrap your `do…`
 |---|---|
 | `this.configuration` | The YAML entry: `name`, `provider`, `model`, `connection`, `defaults`, `providerOptions` |
 | `this.mergeOptions(request)` | `defaults` from YAML, overridden by the call's `options` |
-| `this.withRetry(fn, retry)` | Retries with backoff |
+| `this.withRetry(fn, retry, signal?)` | Retries with backoff, and stops when the caller aborts |
 | `this.http()` | The platform's HTTP client |
 | `this.schemaToJSONSchema(schema)` | Zod to JSON schema, for native structured output |
 | `this.ensureSupportedInputs(request, { text, json, file })` | Rejects inputs the vendor can't take |

@@ -21,17 +21,17 @@ Intelligence has four capabilities for that. Each returns a typed value, and mos
 ```ts
 const ai = trigger.context.inference();
 
-const department = await ai.choice('department').oneOf(['billing', 'technical', 'sales']).with(body).ask('Which team?');
-const topics     = await ai.choice('topics').manyOf(['refund', 'delivery', 'defect', 'invoice']).with(body).ask('Which topics?');
-const urgent     = await ai.check('urgent').with(body).ask('Does this need an answer today?');
-const frustration = await ai.score('frustration').between(0, 10).with(body).ask('How frustrated is the customer?');
+const department = await ai.choice('department').oneOf(['billing', 'technical', 'sales']).instructions('Which team?').state(body).decide();
+const topics     = await ai.choice('topics').manyOf(['refund', 'delivery', 'defect', 'invoice']).instructions('Which topics?').state(body).decide();
+const urgent     = await ai.check('urgent').instructions('Does this need an answer today?').state(body).decide();
+const frustration = await ai.score('frustration').between(0, 10).instructions('How frustrated is the customer?').state(body).decide();
 ```
 
 The smallest shape is the most reliable one. A model picks well from three options; it's less reliable across fifteen fields. When one call gets complicated, split it.
 
 ## Why not just ask for JSON?
 
-You could write `chat().ask('Answer with JSON: {"department": ...}')` and parse the text. That's the glue these capabilities remove:
+You could ask `chat()` to answer with JSON, like `{"department": ...}`, and parse the text. That's the glue these capabilities remove:
 
 - **The shape is enforced.** Options become an enum, a check becomes a boolean. With a `structured` model, the provider enforces the schema; the result is validated against it before your code sees it.
 - **Nothing to parse.** No `JSON.parse`, no `includes('yes')`, no regexes.
@@ -82,8 +82,9 @@ A score without a definition is noise. Give the range with `between` and say wha
 ai.score('frustration')
     .between(0, 10)
     .criteria('0 means calm and friendly', '10 means angry and threatening to leave')
-    .with(body)
-    .ask('How frustrated is the customer?');
+    .instructions('How frustrated is the customer?')
+    .state(body)
+    .decide();
 ```
 
 ## Extract: several fields, one schema
@@ -97,7 +98,7 @@ const Triage = t.object({
     summary: t.string().describe('One sentence, in English')
 });
 
-const triage = await ai.extract('triage').schema(Triage).with(body).ask('Extract the triage record.');
+const triage = await ai.extract('triage').schema(Triage).from(body).instructions('Extract the triage record.').extract();
 triage.orderNumber; // typed as string | null
 ```
 

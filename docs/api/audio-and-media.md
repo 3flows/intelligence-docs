@@ -42,18 +42,20 @@ const { audio, mimeType } = await Intelligence.inference()
     .speech()
     .voice('alloy')
     .format('mp3')
-    .speak('Thanks for calling. Your order has shipped.');
+    .text('Thanks for calling. Your order has shipped.')
+    .speak();
 
 await trigger.context.blob().container('greetings').file('shipped.mp3').upload(Readable.from([audio]));
 ```
 
 | Method | Description |
 |---|---|
-| `.speak(text?)` | The text to speak. Without an argument, the last `with(...)` text is spoken |
+| `.text(input)` | The text to speak |
 | `.voice(name)` | Provider voice, e.g. `alloy`, `nova` |
 | `.format(f)` / `.responseFormat(f)` | `mp3`, `opus`, `aac`, `flac`, `wav`, `pcm` |
 | `.speed(n)` | Playback speed |
 | `.instructions(...)` / `.prompt(...)` | How to speak, for models that support it: *warm and slow* |
+| `.speak()` | Terminal verb |
 
 **Result:** `{ audio: Buffer, mimeType?, usage?, model, provider, raw }`.
 
@@ -66,17 +68,19 @@ const { images } = await Intelligence.inference()
     .image()
     .size('1024x1024')
     .quality('high')
-    .generate('A watercolor of a city bike leaning against a bakery window.');
+    .description('A watercolor of a city bike leaning against a bakery window.')
+    .generate();
 
 images[0].url ?? images[0].b64Json;
 ```
 
 | Method | Description |
 |---|---|
-| `.generate(prompt?)` | The description. Instructions and prompts are prepended |
+| `.description(prompt)` | What to generate. Instructions and prompts are prepended |
 | `.with(...)` / `.withFile(...)` | Reference images, where the model supports editing |
 | `.count(n)`, `.size(s)`, `.quality(q)`, `.style(s)` | Provider parameters |
 | `.responseFormat('url' \| 'b64_json')` | How images come back |
+| `.generate()` | Terminal verb |
 
 **Result:** `{ images: [{ url?, b64Json?, revisedPrompt? }], usage?, model, provider, raw }`.
 
@@ -85,14 +89,15 @@ images[0].url ?? images[0].b64Json;
 Text (and optionally a start image) to video. Capability `video`.
 
 ```ts
-const { videos } = await Intelligence.inference().video().duration(5).size('1280x720').generate('A bike ride along a canal at dawn.');
+const { videos } = await Intelligence.inference().video().duration(5).size('1280x720').description('A bike ride along a canal at dawn.').generate();
 ```
 
 | Method | Description |
 |---|---|
-| `.generate(prompt?)` | The description |
+| `.description(prompt)` | What to generate |
 | `.duration(seconds)`, `.size(s)` | Provider parameters |
 | `.withFile(...)` | Start frame |
+| `.generate()` | Terminal verb |
 
 **Result:** `{ videos: [{ url?, b64Json? }], … }`.
 
@@ -108,13 +113,15 @@ Documents and images to text. Capability `ocr`.
 const { text, pages } = await Intelligence.inference()
     .ocr()
     .withBlob('attachments', 'ticket-42/receipt.png')
-    .read('Keep the table layout as markdown.');
+    .guidance('Keep the table layout as markdown.')
+    .read();
 ```
 
 | Method | Description |
 |---|---|
-| `.read(prompt?)` | Runs OCR. The optional prompt guides layout and format |
 | `.with(...)`, `.withFile(...)`, `.withBlob(...)` | The document(s). Required |
+| `.guidance(prompt)` | Optional: guides layout and format |
+| `.read()` | Terminal verb |
 
 **Result:** `{ text, pages?: [{ index?, text }], usage?, model, provider, raw }`.
 

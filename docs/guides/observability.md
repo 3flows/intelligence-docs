@@ -37,8 +37,8 @@ Only one tracer may be enabled at a time. See [`tracers`](../configuration/trace
 
 | Span | For |
 |---|---|
-| `chat` | `chat().ask(...)`, each round of the tool loop |
-| `stream` | `chat().stream(...)` |
+| `chat` | `chat().answer()`, each round of the tool loop |
+| `stream` | `chat().stream()` |
 | `structured:<name>` | `extract(name)`, and decisions that fall back to structured output |
 | `choice:<name>`, `score:<name>`, `noul:<name>` | Native decisions |
 | `embed`, `rerank`, `transcribe`, `speech`, `image`, `moderation` | The other capabilities |
@@ -47,7 +47,7 @@ Tie spans to your domain with `.trace(traceId)`, `.labels(...)`, `.metadata({...
 
 ## Inference runs
 
-With the trace domain registered, model calls and tool executions can be stored as durable technical trace records:
+With the `IntelligenceTrace` domain registered, every model call is also stored as a record, in a domain kept apart from your business data:
 
 ```yaml
 entities:
@@ -56,11 +56,33 @@ entities:
     - IntelligenceTrace
 ```
 
-Trace records capture fields such as operation, AI, provider, model, usage, latency, status, errors, prompts and chain metadata. Query them through the `IntelligenceTraceDomain` exports when your app needs technical accountability.
+| Entity | One per | Holds |
+|---|---|---|
+| `InferenceRun` | operation: a chat, a choice, a moderation | `kind`, `status`, `purpose`, `subjectType`, `subjectId`, `correlationId`, `durationMs`, `metadata` (with the prompts and their versions) |
+| `ModelCall` | call to a provider, inside a run | `ai`, `provider`, `model`, `capability`, `inputTokens`, `outputTokens`, `totalTokens`, `durationMs`, `status` |
+| `InferenceArtifact` | recorded input, output or error of a call | `kind`, `content`, `hash`, `sensitivity` |
+| `ToolExecution` | tool the model called | the tool, its input and result, `status` |
 
-The `metadata` you set on chains links trace records back to business subjects, so questions like *"what did this ticket cost?"* are answered from trace/domain data rather than chatbot transcripts.
+`.metadata({ subjectType, subjectId, purpose })` on a chain fills the fields of the same name, so the records can be found by what they were made for:
 
-Recording is best-effort: if storing a trace fails, inference still returns its answer.
+```ts
+import { IntelligenceTraceDomain } from '@3flows/intelligence';
+
+const { InferenceRun, ModelCall } = IntelligenceTraceDomain;
+
+const runs = await InferenceRun.find({ subjectType: 'ticket', subjectId: ticket.id }).limit(0).all();
+const calls = await ModelCall.find({ run: runs[0].reference() }).limit(0).all();
+```
+
+Entity queries return ten records unless told otherwise: `limit(0)` reads them all.
+
+Three things to know:
+
+- **Recording never fails a call.** If a record can't be stored, the answer is still returned.
+- **Artifacts contain what was sent and received**, so they can contain personal data. They need a retention rule: the tutorial deletes them with the record they were made for, in [Going live](../tutorial/going-live.md).
+- **Chatbots and agents tag their own calls**: with `subjectType: 'chatbot-session'` and the session id, and with `subjectType: 'agent-run'` and the run id.
+
+The tutorial uses these records in [See what it did](../tutorial/see-what-it-did.md).
 
 ## Metrics
 

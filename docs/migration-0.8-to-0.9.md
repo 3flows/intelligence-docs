@@ -1,140 +1,57 @@
-# Migration guide: 0.8 to 0.9
+---
+title: Migrating from 0.8 to 0.9
+---
 
-This guide compares **published `@3flows/intelligence@0.8.30`** with **`@3flows/intelligence@0.9.0-next.4`**.
+# Migrating from 0.8 to 0.9
 
-0.9 is not a small API rename. It replaces the 0.8 framework stack (`models`, `embeddings`, `channels`, old `agents`, executable `skills`, `signal`) with a Platform-native stack:
+This guide moves an application from `@3flows/intelligence@0.8.30` to `0.9.0-next.4`. What changed and why is in [What's new in 0.9](./whats-new-0.9.md).
 
-- `ais` and Fluent `inference()` for model capabilities,
-- `chatbots` for interactive sessions,
-- declarative `skills`,
-- run-based `agents`,
-- code-defined `workflows`,
-- separate trace/chatbot/agent domains.
+There's no compatibility layer: the 0.8 building blocks (channels, conversational agents, skill classes, `Model`) don't exist in 0.9. A migration is a port, building block by building block. Every section below shows 0.8 on the left and 0.9 on the right, or 0.8 first and 0.9 after it.
 
-## High-level mapping
+:::caution A preview
+0.9 is a preview release. Read [Known gaps](./guides/known-gaps.md) before you plan a migration, in particular the notes on chatbot sessions.
+:::
 
-| 0.8.30 concept | 0.9 replacement | Migration action |
-| --- | --- | --- |
-| `models:` | `ais:` | Merge model provider/model/connection/defaults into AI definitions. |
-| `embeddings:` | `ais:` with `embedding` capability | Define an AI for embeddings instead of a separate embedding service. |
-| `Model.chatCompletion(...)`, `structuredOutput(...)` | `trigger.context.inference().chat()`, `.extract()`, `.choice()`, `.check()`, `.score()` | Replace low-level model service calls with Fluent inference chains. |
-| `Embedding` service | `trigger.context.inference().embedding()` | Replace direct embedding service use with Fluent embedding chains. |
-| `channels:` / `http-chat` / `email` | `chatbots:` plus Platform routes/services | Rebuild user-facing chat surfaces as chatbots or explicit Platform routes. |
-| `channels.http-chat.parameters.agents[].agent` | `chatbots[].http`, `agents[].http`, or explicit route handlers | Choose whether the surface is a session chatbot, task agent, or normal service route. |
-| 0.8 `Agent` with `type: conversational` | `chatbots:` for conversations, `agents:` for tasks | Split interactive chat from task/run harnesses. |
-| `agents[].personality` | `chatbots[].instructions` or `agents[].instructions` | Move persona text into instructions/prompts. |
-| `agents[].parameters.memory` | `chatbots[].history` or `agents[].context`/`workspace` | Configure bounded history/workspace explicitly. |
-| `Skill` subclass with `tools()`, `do()`, `extract()`, `analyse()`, `classify()` | Platform `tool(...)` handlers + Fluent inference + declarative `skills:` | Move executable code to services; keep skill config declarative. |
-| `skills:` with `scope`, `type: local/remote`, `class`, `model`, `embedding` | `skills:` with `instructions`, `tools`, `examples`, `policy` | Rewrite skill config; remote-skill runtime is not a 0.9 primitive. |
-| `skillprompts` / `qualityprompts` | `prompts:`, instructions, explicit evaluator calls | Move prompt text into named prompts and use `check`/`score` for quality gates. |
-| `Signal` and `handle(signal)` | Platform service lifecycle + `AbortSignal`, `timeout(...)`, policy | Remove service `handle(signal)` code unless your app still needs its own background process. |
-| 0.8 file/input validation errors | Chatbot upload/security settings, Platform validation, custom handlers | Move validation to chatbot config or service logic. |
-| 0.8 inference/conversation entities | `IntelligenceTraceDomain`, `IntelligenceChatbotDomain`, `IntelligenceAgentDomain` | Migrate storage/retention by responsibility, not record name. |
+## The map
 
-## Package/import changes
+| 0.8 | 0.9 | Section |
+|---|---|---|
+| `@3flows/platform` 0.8 | `@3flows/platform` 0.9, pinned | [1](#1-packages) |
+| `models`, `embeddings` | `ais` | [2](#2-models-and-embeddings-become-ais) |
+| `IntelligenceService` with `handle(signal)` | `IntelligenceService` with handlers | [3](#3-services) |
+| `model().chatCompletion(…)`, `invokeWithStructuredOutput(…)` | The fluent API | [4](#4-model-calls) |
+| `personality`, prompts in skill classes | `prompts` | [5](#5-prompts) |
+| `Skill` classes and their `Tool`s | Handlers marked with `tool(...)` | [6](#6-skills-and-tools) |
+| `channels` with `http-chat`, and a `conversational` agent | `chatbots` | [7](#7-channels-and-conversational-agents-become-chatbots) |
+| `quality` agents, `qualityprompts` | `check` and `score` | [8](#8-quality-agents-become-checks) |
+| Records of models and conversations | The three domains | [9](#9-stored-data) |
+| Your own provider mocks | The testing kit | [10](#10-tests) |
 
-### 0.8.30 exports
+## 1. Packages
 
-Published 0.8 exported these main areas:
+Intelligence 0.9 runs on Platform 0.9, and names the exact Platform version it needs. Pin both, so there's exactly one Platform in `node_modules`:
 
-```ts
-export * from './agents';
-export * from './channels';
-export * from './embeddings';
-export * from './models';
-export * from './signal';
-export * from './skills';
-```
-
-`Intelligence` was mostly runtime bootstrap and lookup:
-
-```ts
-Intelligence.run(path);
-Intelligence.shutdown();
-Intelligence.lookup(id);
-Intelligence.remember(id, service);
-```
-
-### 0.9 exports
-
-0.9 exports the new runtime surfaces:
-
-```ts
-import { Intelligence, IntelligenceService, handler, tool, workflow } from '@3flows/intelligence';
-import { runOffline, ScriptedAI } from '@3flows/intelligence/testing';
-import { Service, Register, t } from '@3flows/intelligence/platform';
-```
-
-`Intelligence` now also exposes runtime-aware helpers:
-
-```ts
-Intelligence.create();
-Intelligence.use(runtime);
-Intelligence.runtime();
-Intelligence.withRuntime(runtime, fn);
-Intelligence.inference();
-Intelligence.chatbots();
-Intelligence.inspect();
-Intelligence.version();
-```
-
-Inside services, prefer the trigger context:
-
-```ts
-trigger.context.inference();
-trigger.context.prompts();
-trigger.context.skill('name');
-trigger.context.agent('name');
-trigger.context.workflow('name');
-```
-
-## Service migration
-
-### 0.8
-
-0.8 `IntelligenceService` was abstract and required `handle(signal)`. It exposed old model/embedding/skill helpers:
-
-```ts
-export class MyService extends IntelligenceService {
-  async handle(signal: Signal): Promise<void> {
-    // old background/lifecycle style
-  }
-
-  async ask(text: string) {
-    const model = this.model('gpt');
-    return model.chatCompletion([{ role: 'user', content: text }]);
-  }
+```json title="package.json"
+"dependencies": {
+    "@3flows/intelligence": "0.9.0-next.4",
+    "@3flows/platform": "0.9.0-next.31"
 }
 ```
 
-### 0.9
+The platform has a [migration guide](https://3flows.github.io/platform-docs/docs/release/migration-0.8-to-0.9) of its own for 0.8 to 0.9; do that part first.
 
-0.9 `IntelligenceService` is a Platform service with an enriched service context. Use typed handlers and Fluent inference:
+Start the application with `Intelligence.run`, not `Platform.run`:
 
-```ts
-import { IntelligenceService, handler } from '@3flows/intelligence';
-import { Register, t } from '@3flows/intelligence/platform';
+```ts title="main.ts"
+import { Intelligence } from '@3flows/intelligence';
+import './services.js';
 
-@Register()
-export class MyService extends IntelligenceService {
-  handlers = () => [
-    handler('ask', t.object({ text: t.string() }), t.object({ answer: t.string() }), async ({ text }, trigger) => {
-      const response = await trigger.context
-        .inference()
-        .chat()
-        .metadata({ purpose: 'ask' })
-        .timeout(10_000)
-        .ask(text);
-
-      await trigger.ok({ answer: response.text ?? '' });
-    })
-  ];
-}
+await Intelligence.run('./intelligence.yml');
 ```
 
-## Models and embeddings to `ais`
+## 2. `models` and `embeddings` become `ais`
 
-### 0.8
+**0.8**
 
 ```yaml
 models:
@@ -148,116 +65,156 @@ embeddings:
     model: text-embedding-3-small
 ```
 
-### 0.9
+**0.9**
 
 ```yaml
 ais:
-  - name: gpt
+  - name: DEFAULT
     provider: openai
     model: gpt-4.1-mini
     connection:
       apiKey: ${{ OPENAI_API_KEY }}
     defaults:
-      timeoutMs: 10000
+      timeoutMs: 30000
+      retry: { attempts: 3, backoffMs: 1000 }
 
-  - name: embedding
+  - name: embeddings
     provider: openai
     model: text-embedding-3-small
-    capabilities: [embedding]
     connection:
       apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      timeoutMs: 10000
 ```
 
-Then call:
+| 0.8 | 0.9 |
+|---|---|
+| `provider: openai` | `provider: openai` |
+| `provider: azureai` (models), `azure` (embeddings) | `provider: azureai` |
+| `provider: generic-openai` | `provider: openai-compatible`, with `connection.baseUrl` |
+| Keys from the environment, like `OPENAI_API_KEY` | Named in YAML: `connection.apiKey: ${{ OPENAI_API_KEY }}` |
+| One model is chosen by name | An AI is chosen by **capability**; name one with `.model(name)` only where it matters |
+
+An AI named `DEFAULT` is used when a chain names none. Embedding models are found by their capability: `embedding()` needs no name. See [`ais`](./configuration/ais.md).
+
+## 3. Services
+
+**0.8**
 
 ```ts
-await trigger.context.inference().chat().model('gpt').ask('Hello');
-await trigger.context.inference().embedding().model('embedding').input('text').embed();
+export class SupportService extends IntelligenceService {
+    async handle(signal: Signal): Promise<void> { /* … */ }
+
+    async draft(ticket: Ticket) {
+        const model = this.model('gpt');
+        // …
+    }
+}
 ```
 
-## Channels and conversational agents to chatbots/agents
-
-### 0.8
-
-A common 0.8 HTTP chat setup routed a channel path to a conversational agent:
-
-```yaml
-channels:
-  - name: public-chat
-    type: http-chat
-    parameters:
-      useHttp: api
-      sseEnabled: true
-      streamableEnabled: true
-      agents:
-        - path: /support
-          agent: support_agent
-
-agents:
-  - name: support_agent
-    type: conversational
-    personality: You help support customers.
-    model: gpt
-    skills: [orders]
-    parameters:
-      memory: middle
-```
-
-### 0.9: user session/chat surface
-
-Use `chatbots:` when users are having a session-style conversation:
-
-```yaml
-chatbots:
-  - name: support
-    type: conversation
-    model: gpt
-    instructions:
-      - You help support customers.
-    history:
-      maxMessages: 20
-    http:
-      path: /support
-      useHttp: api
-    tools:
-      - service: OrdersService
-```
-
-The compatibility HTTP routes still use the word `/conversation`, but durable records are chatbot sessions/messages/files/reactions.
-
-### 0.9: task/run surface
-
-Use `agents:` when the unit of work is a task with a run id, events, policy, workspace, and optional delegation:
-
-```yaml
-agents:
-  - name: support_agent
-    model: gpt
-    instructions:
-      - Resolve support tasks step by step.
-    skills: [orders]
-    tools:
-      - service: OrdersService
-    http:
-      path: /agents/support
-      useHttp: api
-```
-
-Run it from a handler:
+**0.9**
 
 ```ts
-const run = await trigger.context
-  .agent('support_agent')
-  .task('Resolve ticket T-42')
-  .input({ ticketId: 'T-42' })
-  .run();
+import { IntelligenceService, handler } from '@3flows/intelligence';
+import { Register, t } from '@3flows/platform';
+
+@Register()
+export class SupportService extends IntelligenceService {
+    handlers = () => [
+        handler('draftReply', Ticket, Reply, async (ticket, trigger) => {
+            const { inference } = trigger.context;
+            // …
+        })
+    ];
+}
 ```
 
-## Skills changed from executable services to declarative bundles
+| 0.8 | 0.9 |
+|---|---|
+| `abstract handle(signal: Signal)` | Gone. Work is done in handlers and routes |
+| `Signal` | Gone. For cancellation, pass `trigger.signal` to a chain with `.signal(...)` |
+| `this.model(name)`, `this.embedding(name)` | `trigger.context.inference()` |
+| `this.skill(name)`, `this.skills()` | Another service: `trigger.context.service(name)`. Skills are configuration now |
+| `handler` from `@3flows/platform` | `handler` from `@3flows/intelligence`: the same handler, with a trigger context that has `inference()`, `prompts()`, `agent()`, `workflow()` |
 
-### 0.8
+## 4. Model calls
 
-0.8 skills were services/classes. They could own tools and structured outputs:
+**0.8**
+
+```ts
+const response = await this.model('gpt').chatCompletion([
+    { role: 'system', content: 'You draft replies for Velo.' },
+    { role: 'user', content: JSON.stringify(ticket) }
+]);
+
+const triage = await this.model('gpt').invokeWithStructuredOutput<Triage>(
+    `Classify this ticket: ${ticket.body}`,
+    TriageSchema
+);
+```
+
+**0.9**
+
+```ts
+const ai = trigger.context.inference();
+
+const reply = await ai.chat()
+    .instructions('You draft replies for Velo.')
+    .with(ticket)
+    .question('Draft a reply to this ticket.')
+    .answer();
+
+const department = await ai.choice('department')
+    .oneOf(['billing', 'technical', 'sales'])
+    .instructions('Which team should handle this ticket?')
+    .state(ticket.body)
+    .decide();
+
+const facts = await ai.extract('facts').schema(Facts).from(ticket.body).extract();
+```
+
+| 0.8 | 0.9 |
+|---|---|
+| `chatCompletion(messages)` | `chat()` with `.instructions(...)`, `.with(...)`, `.question(...)`, then `.answer()` |
+| A system message | `.instructions(...)` or `.prompt(name)` |
+| Data pasted into the user message | `.with(data)`: kept apart from instructions |
+| Earlier messages in the `messages` array | `.messages(history)` |
+| `toolDescriptions`, tool requests and responses passed by hand | `.tools(...)`, `.service(...)`, `.toolsFrom(...)`: the tool loop runs inside `.answer()` |
+| `invokeWithStructuredOutput(prompt, schema)` | `extract(name).schema(schema).from(data).extract()` |
+| A structured output with one enum field | `choice(name).oneOf(options)` |
+| A structured output with one boolean or number | `check(name)`, `score(name).between(min, max)` |
+| `ChatCompletionOptions` | `.options({ temperature, maxTokens, … })`, or `defaults` on the AI |
+| `traceId` as the last argument | `.trace(traceId)`, `.metadata({ subjectType, subjectId, purpose })` |
+| The embedding service | `inference().embedding().with(text).embed()` |
+
+Give every call a `.timeout(...)` or a `timeoutMs` in the AI's `defaults`. The tutorial's Parts 1 and 2 introduce these calls one by one: [Tutorial](./tutorial/index.md).
+
+## 5. Prompts
+
+**0.8:** the `personality` of an agent, and the prompts returned by a skill's `getSkillPrompt` and `getQualityPrompt`.
+
+**0.9:** a catalog in YAML.
+
+```yaml
+prompts:
+  - name: support.reply
+    version: v1
+    template: |
+      You draft replies for the support team of {{ shop }}, a bike shop.
+      Never promise refunds, discounts or delivery dates.
+```
+
+```ts
+ai.chat().prompt('support.reply', { shop: 'Velo' })
+```
+
+Move every piece of policy text out of code and out of `personality` into a prompt with a `version`, and bump the version when it changes. See [`prompts`](./configuration/prompts.md).
+
+## 6. Skills and tools
+
+This is the largest change. A 0.8 skill was a class: it owned tools, structured outputs and prompts, and used a model itself. A 0.9 skill is a few lines of YAML. The code moves into services.
+
+**0.8**
 
 ```yaml
 skills:
@@ -266,159 +223,200 @@ skills:
     type: local
     class: OrdersSkill
     model: gpt
-    embedding: embedding
 ```
 
 ```ts
-class OrdersSkill extends Skill {
-  tools = () => [/* Tool objects */];
-  getSkillPrompt = (...) => '...';
-  getQualityPrompt = (...) => '...';
+export class OrdersSkill extends Skill {
+    tools = () => [ /* Tool objects: lookupOrder, … */ ];
 }
 ```
 
-### 0.9
-
-A skill is configuration only:
-
-```yaml
-skills:
-  - name: orders
-    description: Order lookup and order-resolution guidance.
-    instructions:
-      - Look up the order before proposing action.
-    tools:
-      - service: OrdersService
-        tags: [orders]
-    policy:
-      allowDestructive: false
-```
-
-Executable code moves into Platform service handlers marked with `tool(...)`:
+**0.9**
 
 ```ts
 import { IntelligenceService, tool } from '@3flows/intelligence';
 
+@Register()
 export class OrdersService extends IntelligenceService {
-  handlers = () => [
-    tool('lookupOrder', Input, Output, async (params, trigger) => {
-      await trigger.ok(await lookupOrder(params.number));
-    }, { description: 'Look up order status.', readOnly: true, tags: ['orders'] })
-  ];
+    handlers = () => [
+        tool('lookupOrder', OrderQuery, Order.nullable(), async ({ number }, trigger) => {
+            await trigger.ok(await findOrder(trigger.context, number));
+        }, {
+            name: 'lookup_order',
+            description: 'Look up an order by number: status, items and shipping date.',
+            readOnly: true,
+            tags: ['orders']
+        })
+    ];
 }
 ```
 
-Attach the skill to an agent or reference the service tools directly from a chatbot/agent.
+| 0.8 | 0.9 |
+|---|---|
+| A `Tool` of a skill | A service handler, marked with `tool(...)` |
+| `skill.do(toolCall)` | The tool loop of `chat()`, a chatbot or an agent calls the handler |
+| `skill.extract(file, …)`, `analyse`, `classify` | `extract`, `chat` and `choice` with `.withFile(...)` or `.withBlob(...)` |
+| `StructuredOutput`s of a skill | A schema, passed to `extract(name).schema(...)` |
+| `type: remote`, `RemoteSkill` | A platform service in another process, called through `service(name)` |
+| `scope`, `class`, `model`, `embedding` on a skill | Gone |
+| `skills:` in YAML | Only if agents need them: `{ name, instructions, tools }`. See [Skills](./concepts/skills.md) |
 
-## Old conversations / preview docs
+Who may use a tool is no longer decided by which skills an agent has. It's decided per call (`.tools(...)`, `.service(...)`), or by service and tag in the YAML of a chatbot or agent.
 
-Some pre-0.9 documentation and samples used `conversations().conversation(id)` and `conversations:` storage. That was not the main published 0.8.30 package shape, but if your app used those preview APIs, migrate them to `chatbots:` or direct Fluent `chat()`:
+## 7. Channels and conversational agents become chatbots
 
-| Preview conversation concept | 0.9 replacement |
-| --- | --- |
-| `conversations:` YAML | `chatbots:` YAML |
-| `context.conversations().conversation(id)` | chatbot session API/HTTP route, or `inference().chat()` for stateless calls |
-| `AIConversation*` records | `ChatbotSession`, `ChatbotMessage`, `ChatbotFile`, `ChatbotReaction`, plus trace records |
-| `conversation.clear()` | delete/expire the chatbot session and files according to retention policy |
-
-## Workflows replace ad-hoc orchestration
-
-0.8 orchestration often lived implicitly in agents, skills, or channel dispatch. In 0.9, deterministic multi-step processes should be workflows:
-
-```ts
-import { workflow } from '@3flows/intelligence';
-
-export const refundWorkflow = workflow('support.refund')
-  .input<{ ticketId: string; text: string }>()
-  .step('classify', (s) =>
-    s.inference().check('refund-request')
-      .state(({ input }) => input.text)
-      .define()
-  )
-  .when('needsRefund', ({ steps }) => steps.classify.accepted)
-  .step('agent', (s) =>
-    s.agent('support_agent')
-      .task(({ input }) => `Prepare refund resolution for ${input.ticketId}`)
-      .input(({ input }) => input)
-      .define()
-  )
-  .end()
-  .returns(({ steps }) => steps);
-```
-
-Register and run workflows through an Intelligence service context:
-
-```ts
-this.workflows().register(refundWorkflow);
-const output = await trigger.context.workflow('support.refund').input(input).run();
-```
-
-## Streaming
-
-0.9 Fluent chat streaming returns `InferenceStream<AIStreamEvent, AIChatResponse>`:
-
-```ts
-const stream = await trigger.context.inference().chat().question('Hello').stream();
-for await (const event of stream) console.log(event);
-const text = await stream.text();
-const final = await stream.completed;
-```
-
-Use `stream.toReadable({ format: 'sse' })` for HTTP SSE. Chatbots and agents also expose HTTP/AG-UI streaming surfaces when configured.
-
-## Testing
-
-Use the exported testing kit instead of app-local provider shims:
-
-```ts
-import { runOffline, ScriptedAI, expectPrompt, collectStream } from '@3flows/intelligence/testing';
-```
-
-Patch `globalThis.fetch` only for provider wire-format tests.
-
-## Configuration validation and policy
-
-0.9 validates Intelligence configuration at startup. Start with warnings, then enforce production policy:
+**0.8**
 
 ```yaml
-intelligence:
-  strict: true
-  inference:
-    require:
-      metadata: true
-      timeout: true
-    onViolation: error
+channels:
+  - name: chat
+    type: http-chat
+    parameters:
+      useHttp: public
+      sseEnabled: true
+      agents:
+        - path: /support
+          agent: support
+
+agents:
+  - name: support
+    type: conversational
+    personality: You are the assistant of Velo, a bike shop.
+    model: gpt
+    skills: [orders]
+    inputValidation: true
+    parameters:
+      greeting: Hi, how can I help?
+      memory: middle
 ```
 
-Common warnings include missing prompt versions, missing AI defaults/timeouts, invalid chatbot/agent references, unbounded chatbot history, literal API keys, missing domains, and invalid response schemas.
+**0.9**
 
-## Storage and retention
+```yaml
+chatbots:
+  - name: support
+    type: conversation
+    model: DEFAULT
+    greeting: Hi, how can I help?
+    prompts:
+      - name: support.assistant
+        version: v1
+    history:
+      maxMessages: 20
+    inputValidation: true
+    tools:
+      - service: OrdersService
+        tags: [orders]
+    http:
+      useHttp: public
+      path: /support
 
-Do not migrate old records by table name only. Migrate by responsibility:
+entities:
+  backend: docs
+  domains:
+    - IntelligenceTrace
+    - IntelligenceChatbot
+```
 
-| Data | 0.9 owner |
-| --- | --- |
-| Tickets/orders/cases/decisions | Your app's Platform docs/entities/domains |
-| User chat sessions and messages | `IntelligenceChatbotDomain` |
-| Agent runs, events, delegations, workspace index | `IntelligenceAgentDomain` |
-| Technical model/tool evidence | `IntelligenceTraceDomain` |
-| Large files/artifacts | Platform blobs, referenced from chatbot/agent/app records |
+| 0.8 | 0.9 |
+|---|---|
+| `channels[].parameters.agents[].path` | `chatbots[].http.path` |
+| `channels[].parameters.useHttp` | `chatbots[].http.useHttp` |
+| `sseEnabled`, `streamableEnabled`, `wsEnabled` | Streaming over server-sent events is always there: `POST /conversation/:id/stream`. There's no WebSocket transport |
+| `agents[].personality` | `chatbots[].prompts`, or `instructions` |
+| `agents[].model` | `chatbots[].model`: the name of an AI |
+| `agents[].skills` | `chatbots[].tools`: service and tags |
+| `parameters.greeting`, `initialRecommendations`, `disclaimer` | `greeting`, `initialRecommendations`, `disclaimer` |
+| `parameters.memory: short` / `middle` / `long` / `forever` | `history.maxMessages` or `history.maxTokens` |
+| `inputValidation`, `outputValidation`, `allowedMimeTypes`, `secureFileUpload`, `useAV`, `customizable`, `observabilityTag` | The same names, on the chatbot |
+| `channels[].parameters.auth` | Authentication of the platform HTTP server the chatbot is on |
+| `email` and `sms` channels | No chatbot transport. Receive the message in a platform route or connector, and call a service |
 
-## Breaking changes summary
+The HTTP routes keep their names (`POST /conversation`, `POST /conversation/:id`, files, reactions), so a client of the 0.8 chat API has little to change. Test it against your client: this guide hasn't verified every field of every response.
 
-| Breaking change from 0.8.30 | Migration |
-| --- | --- |
-| `models:` removed | Use `ais:` and `inference().chat()` / `.extract()` / decisions. |
-| `embeddings:` removed | Use `ais:` with embedding capability and `inference().embedding()`. |
-| `channels:` removed | Use `chatbots`, `agents`, or Platform routes. |
-| `http-chat` channel removed | Configure `chatbots[].http`, `agents[].http`, AG-UI, or explicit routes. |
-| 0.8 `Agent`/`ConversationalAgent` removed | Use `chatbots` for sessions and 0.9 `agents` for task runs. |
-| `personality` removed | Use `instructions` or named `prompts`. |
-| `Skill` subclass execution model removed | Move code to `tool(...)` handlers; make `skills:` declarative. |
-| `scope`, `type: local/remote`, `class` skill config removed | Rewrite skills as instructions/tools/policy. |
-| `Skill.extract/analyse/classify` removed | Use Fluent `extract`, `chat`, `choice`/`check`/`score`, `embedding`, `reranker`. |
-| `Signal` public service pattern removed | Use Platform handlers, runtime context, `AbortSignal`, `timeout`, and workflows. |
-| Old model raw types/tool-call helpers no longer primary | Use AI/inference response types and service tools. |
-| Old conversation/ontology preview APIs removed | Use `chatbots` and Intelligence chatbot/trace domains. |
-| Streaming contract changed | Treat streams as `InferenceStream`; use `.completed`, `.text()`, `.toReadable()`. |
-| No direct compatibility shim for old framework objects | Port concepts intentionally; do not try to revive Channel → Agent → Skill dispatch. |
+**Not every conversational agent should become a chatbot.** A chatbot fits one person talking to one assistant. If your 0.8 agent worked on something your application owns (a ticket, a case), a service with `chat().messages(history)` fits better: the service adds the record to every turn, scopes the tools to the user, and checks the answer. The tutorial builds exactly that in [Remember](./tutorial/remember.md) and [Act](./tutorial/act.md), and a chatbot in [A chatbot](./tutorial/a-chatbot.md).
+
+**The word "agent" has moved.** In 0.9, an agent is a model that works on a task in several steps. Use one where 0.8 had an agent that called several tools in a row to get something done. See [Agents](./concepts/agents.md).
+
+## 8. Quality agents become checks
+
+**0.8:** agents of `type: quality`, and `qualityprompts`, reviewed an answer.
+
+**0.9:** a review is a call, and its result is a typed value your code acts on.
+
+```ts
+const grounded = await ai.check('grounded')
+    .instructions('Is every statement of fact in the reply supported by the sources?')
+    .state({ reply, sources })
+    .decide();
+
+if (!grounded.value) { /* hand over to a person */ }
+```
+
+The tutorial's Part 5 covers judges, guardrails before and after the model, and measuring them: [Judge the answers](./tutorial/judge-the-answers.md), [Guard the output](./tutorial/guard-the-output.md).
+
+## 9. Stored data
+
+0.9 doesn't read the records 0.8 wrote. Decide per kind of data:
+
+| 0.8 data | In 0.9 |
+|---|---|
+| Your own business records | Unchanged: they're yours |
+| Conversations people may want to continue | There's no import. Either let old conversations end with 0.8, or copy their messages into your own store and send them with `chat().messages(...)` |
+| Conversations kept for the record | Export them from the 0.8 store before you switch it off |
+| Records of model calls | New ones are written to the `IntelligenceTrace` domain. Old ones stay where they are |
+
+Register the domains you use:
+
+```yaml
+entities:
+  backend: docs
+  domains:
+    - IntelligenceTrace      # every model call
+    - IntelligenceChatbot    # with chatbots
+    - IntelligenceAgent      # with agents
+```
+
+And decide on retention for each: trace records keep the inputs and outputs of calls, sessions keep what people typed. See [Going live](./tutorial/going-live.md).
+
+## 10. Tests
+
+**0.8:** tests mocked the model's HTTP calls or replaced the model service.
+
+**0.9:** run the real YAML with every AI replaced by a scripted provider.
+
+```ts
+import { ScriptedAI, runOffline } from '@3flows/intelligence/testing';
+
+before(() => runOffline('./intelligence.yml'));
+beforeEach(() => ScriptedAI.clear());
+
+test('routes to the department the model chose', async () => {
+    ScriptedAI.respond(() => ({ structured: { value: 'billing', confidence: 0.9, reason: 'Charged twice.' } }));
+    // call your handler, then assert on the result and on ScriptedAI.requests()
+});
+```
+
+See [Testing](./guides/testing.md).
+
+## A migration order that works
+
+1. Platform 0.8 to 0.9, with the application still on Intelligence 0.8 where possible.
+2. `ais`, and one service ported to the fluent API, with offline tests.
+3. Prompts into the catalog.
+4. Skill classes into services with `tool(...)` handlers.
+5. Channels and conversational agents into chatbots, or into services that own the conversation.
+6. The domains, and a retention rule for each.
+7. `intelligence.strict: true`, and a look at what the startup validation still reports.
+
+## Checklist
+
+- [ ] One `@3flows/platform` in `node_modules`, the version Intelligence asks for.
+- [ ] The application starts with `Intelligence.run`.
+- [ ] No `models`, `embeddings`, `channels` in YAML; no `Model`, `Skill`, `Signal`, `Channel` in code.
+- [ ] Every AI has `defaults.timeoutMs`; every prompt has a `version`.
+- [ ] Every call that code branches on is a `choice`, `check`, `score` or `extract`.
+- [ ] Tools are handlers; tools that read user data are scoped to the user.
+- [ ] `IntelligenceTrace` is registered, and calls are tagged with `.metadata({ subjectType, subjectId })`.
+- [ ] Tests run offline, with the real YAML.
+- [ ] A retention rule for traces, sessions and runs.

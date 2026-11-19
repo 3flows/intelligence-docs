@@ -9,7 +9,8 @@ Checks content against a provider's safety policy: harassment, hate, self-harm, 
 ```ts
 const moderation = await Intelligence.inference()
     .moderation()
-    .check(ticket.body);
+    .input(ticket.body)
+    .moderate();
 
 moderation.flagged;                      // true if any input was flagged
 moderation.results[0].categories;        // { harassment: true, violence: false, … }
@@ -18,9 +19,9 @@ moderation.results[0].categoryScores;    // { harassment: 0.91, … }
 
 | Method | Description |
 |---|---|
-| `.check(input?: string \| string[])` | Terminal. Without an argument, the text of all `with(...)` inputs is checked |
-| `.with(...)` | Text or objects to check |
+| `.input(input: string \| string[])` | The text to check, or several texts |
 | `.model(name)` | The moderation AI |
+| `.moderate()` | Terminal verb |
 
 **Result:** `{ flagged: boolean, results: [{ flagged, categories?, categoryScores? }], usage?, model, provider, raw }`. With several inputs, `results` has one entry per input.
 
@@ -34,4 +35,4 @@ moderation.results[0].categoryScores;    // { harassment: 0.91, … }
 
 Use `moderation()` as a cheap first screen for clearly unsafe content. Use `check` for your own rules: *"Does this message ask us to change a bank account number?"*
 
-Use moderation at service boundaries before text reaches a model or a customer-facing surface.
+Use moderation at service boundaries, before text reaches a model or a customer. The tutorial does both in [Guard the input](../tutorial/guard-the-input.md).

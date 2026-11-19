@@ -1,81 +1,50 @@
+---
+title: Skills
+---
+
 # Skills
 
-A skill is a reusable declarative capability bundle: instructions plus tool references and metadata. Skills let multiple agents share the same operational guidance without copying prompts and tool lists.
-
-Skills in 0.9 are not the old core execution abstraction. Executable work belongs in Platform handlers, usually marked with `tool(...)`. Agents and other harnesses can include skills to inherit instructions and tool availability.
-
-## Configuration
+A **skill** bundles what an agent needs for one kind of work: instructions, and references to the tools for following them. It's configuration: words and references, no code.
 
 ```yaml
 skills:
-  - name: order_resolution
-    displayName: Order resolution
-    description: Resolve order delivery and fulfillment problems.
+  - name: case-research
+    description: Collect the facts of a support case before a person answers it.
     instructions:
-      - Inspect order status before proposing actions.
-      - Prefer a customer-safe summary over internal jargon.
+      - Read the chat of the ticket first, so you know what was already said.
+      - If the ticket mentions an order number, look the order up. Never guess an order's status.
     tools:
       - service: SupportService
-        tags: [order]
-    metadata:
-      owner: support-ops
+        tags: [case]
+      - service: HelpCenterService
+        tags: [public]
 ```
 
-Attach the skill to an agent:
+An [agent](./agents.md) that lists the skill gets its instructions, added to its own, and its tools:
 
 ```yaml
 agents:
-  - name: order_ops
-    model: DEFAULT
+  - name: case-researcher
     skills:
-      - order_resolution
+      - case-research
 ```
 
-## Tool references
+## Where the code is
 
-Skill tools refer to Platform services and can use the same discovery controls as chatbots and agents:
+A skill has none. What it can *do* is in service handlers marked with [`tool(...)`](./tools.md#marked-tools-tool); the skill only selects them, by service and tag. So a skill is reviewed like a prompt, and its tools are reviewed and tested like any other handler.
 
-```yaml
-tools:
-  - service: SupportService
-  - service: BillingService
-    include: [lookupInvoice]
-  - service: UiService
-    tags: [ui]
-```
+| Field | |
+|---|---|
+| `name`, `description` | What the skill is for |
+| `instructions` | How to do this kind of work. Added to the agent's instructions |
+| `tools` | Tool references: `service`, narrowed by `tags`, `include`, `exclude` |
+| `examples` | Optional examples: `input`, `approach`, `output` |
+| `policy` | Limits that come with the skill, like those of an [agent](./agents.md#limits) |
 
-A service handler becomes model-facing when it is declared with `tool(...)`:
+## When a skill is worth it
 
-```ts
-import { IntelligenceService, tool } from '@3flows/intelligence';
-import { Register, t } from '@3flows/intelligence/platform';
+One agent with one job doesn't need a skill: instructions and tools can be on the agent. A skill pays off when the same way of working is needed twice, by two agents or by the same agent in two configurations. Then both get the same instructions and exactly the same tools, from one place.
 
-@Register()
-export class SupportService extends IntelligenceService {
-  handlers = () => [
-    tool('lookupOrder', Input, Output, async (params, trigger) => {
-      await trigger.ok(await lookupOrder(params.number));
-    }, { description: 'Look up order status.', readOnly: true, tags: ['order'] })
-  ];
-}
-```
+A skill isn't a substitute for a service handler (work that code can do), a prompt (text for one call) or a workflow (a process of fixed steps).
 
-## Runtime access
-
-Inside an Intelligence service, use the runtime context:
-
-```ts
-const skill = trigger.context.skill('order_resolution');
-const skills = trigger.context.skills();
-```
-
-Avoid global mutable registries. Skills are resolved against the active Platform runtime.
-
-## When to use a skill
-
-Use a skill when several agents need the same instructions or tool bundle. Do not use a skill as a substitute for:
-
-- a service handler (`handler` / `tool`) when work is deterministic code,
-- an agent when you need runs, events, workspace, or policy,
-- a workflow when you need deterministic orchestration,
-- a prompt when you only need reusable text rendering.
+The tutorial introduces skills in [Skills and agents](../tutorial/skills-and-agents.md).

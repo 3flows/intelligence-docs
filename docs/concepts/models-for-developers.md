@@ -23,8 +23,8 @@ A model remembers nothing between calls. If it "remembers" what the customer sai
 That's why Intelligence separates:
 
 - `trigger.context.inference().chat()` is **one call**. Nothing is remembered.
-- configured [chatbots](./chatbots.md) own session history for interactive assistants.
-- [agents](./agents.md) own task/run state and workspace memory.
+- `chat().messages(history)` sends what was said before. The application stores it, and decides how much of it the model sees.
+- A [chatbot](./chatbots.md) does that for you, for a conversation that needs no application around it.
 
 Memory is a feature of your application, not of the model. You decide what's kept, where, and for how long.
 
@@ -57,10 +57,10 @@ Tokens matter for three reasons:
 | | What it means for you |
 |---|---|
 | **Cost** | Providers charge per token, separately for input (what you send) and output (what comes back). Long context in every call adds up. |
-| **Latency** | Output tokens are generated one after another. A long answer takes longer. `InferenceStream` lets services forward text as it arrives. |
+| **Latency** | Output tokens are generated one after another. A long answer takes longer. [Streaming](../tutorial/stream.md) shows them as they come. |
 | **Limits** | Every model has a **context window**: the maximum number of tokens it can see at once. Instructions, history, documents and the answer all have to fit. |
 
-Every response carries `usage` with `promptTokens`, `completionTokens` and `totalTokens`. With tracing/domain storage configured, model calls are also recorded as technical inference trace records. Keep those separate from business state and chatbot/agent runtime records.
+Every response carries `usage` with `promptTokens`, `completionTokens` and `totalTokens`. With the `IntelligenceTrace` domain registered, every call is also recorded with its usage. See [See what it did](../tutorial/see-what-it-did.md).
 
 ## What a model is good at, and what it isn't
 
@@ -87,7 +87,7 @@ Every call in Intelligence is built from the same three parts:
 |---|---|---|
 | **Instructions**: who the model is and how it should behave | `.instructions(...)` or `.prompt(name)` | *You are a support agent for a bike shop. Be brief and friendly.* |
 | **Context**: the material it works on | `.with(...)`, `.withFile(...)`, `.withBlob(...)` | the ticket, the order, a PDF |
-| **Question**: the task for this call | `.ask(...)` | *Draft a reply.* |
+| **Question**: the task for this call | `.question(...)` | *Draft a reply.* |
 
 Keeping them apart is what makes a call reviewable: the instructions are policy, the context is data, the question is the task. See [Context and prompts](./context-and-prompts.md).
 
@@ -99,4 +99,4 @@ Keeping them apart is what makes a call reviewable: the instructions are policy,
 
 - [Capabilities and providers](./capabilities-and-providers.md): how a call finds a model.
 - [The fluent API](./the-fluent-api.md): the grammar every capability shares.
-- [The learning path](../learning-path/index.md): the current 0.9 building blocks in order.
+- [The tutorial](../tutorial/index.md): all of this, one small step at a time.

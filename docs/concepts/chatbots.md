@@ -1,102 +1,103 @@
+---
+title: Chatbots
+---
+
 # Chatbots
 
-Chatbots are the current high-level interactive surface in Intelligence 0.9. They replace the old internal `conversations` concept while keeping HTTP route names such as `/conversation` where compatibility matters.
+A **chatbot** is a configured assistant that holds its own conversations: one person, one assistant, a session with a history. It's configuration, not code.
 
-Use a chatbot when you need a named assistant with sessions, history, files, reactions, tools, structured output, retrieval context, HTTP exposure, or AG-UI exposure.
+Use a chatbot when the conversation *is* the feature. When a service owns the work around the conversation (a ticket, a case, an order), and decides per turn what the model gets, use [`chat()` with `messages(...)`](../api/chat.md#history) in that service instead. The tutorial shows both: [Remember](../tutorial/remember.md) and [A chatbot](../tutorial/a-chatbot.md).
 
-## Chatbot types
-
-Current stable types are:
-
-| Type | Use it for |
-| --- | --- |
-| `conversation` | General multi-turn chat with instructions and optional tools |
-| `retrieval` | Chat grounded in retrieved context |
-| `structured` | Chat that must return a configured schema |
-
-`task` is intentionally deferred; use agents for task/run semantics.
-
-## Configuration
+## What a chatbot is made of
 
 ```yaml
 chatbots:
-  - name: support
+  - name: shop
     type: conversation
-    model: DEFAULT
-    instructions:
-      - You answer support questions for Velo.
-      - Be concise and ask for a human when confidence is low.
-    prompts:
-      - name: support.chatbot.base
+    model: DEFAULT                 # an AI from `ais`
+    greeting: Hi, I'm the Velo assistant.
+    prompts:                       # its instructions, from the prompt catalog
+      - name: shop.assistant
         version: v1
     history:
-      maxMessages: 20
-    http:
-      path: /support
-    agui:
-      useHttp: api
-      path: /support/agui
-      interactions:
-        enabled: true
+      maxMessages: 20              # what the model sees of a session
+    tools:                         # handlers marked with tool(...), by service and tag
+      - service: HelpCenterService
+        tags: [public]
     toolPolicy:
-      requireConfirmation: true
       allowDestructive: false
-    tools:
-      - service: SupportService
+    http:                          # where it's reachable
+      useHttp: public
+      path: /shop
 ```
 
-## Sessions and records
+Every field is described in the [configuration reference](../configuration/chatbots.md).
 
-A chatbot session is the durable runtime record for a user/thread/ticket conversation. 0.9 deliberately keeps these records separate from technical traces and business data:
+There are three types:
 
-- `ChatbotSession` tracks the chatbot profile and session.
-- `ChatbotMessage` stores messages.
-- `ChatbotFile` stores file metadata.
-- `ChatbotReaction` stores user feedback.
-- `IntelligenceTraceDomain` stores model/tool-call evidence.
-- Your app stores business state such as tickets and orders.
+| `type` | |
+|---|---|
+| `conversation` | A multi-turn chat with instructions and, optionally, tools |
+| `retrieval` | A chat that answers from documents in `docs`, configured under `retrieval` |
+| `structured` | A chat whose answers match a JSON schema, configured under `responseSchema` |
 
-This separation matters for retention: closing a support ticket may delete the chatbot session while preserving an auditable business event or deleting technical traces on a different schedule.
+## Sessions
+
+A conversation with a chatbot is a **session**. Starting one returns its id and the greeting; every message is sent to a session:
+
+```ts
+const chatbot = Intelligence.chatbots().chatbot('shop');
+
+const { conversationId } = await chatbot.session().start();
+const answer = await chatbot.session(conversationId).message().text('Can I return a helmet?').send();
+
+answer.message;   // the reply
+```
+
+`message().stream()` returns an [`InferenceStream`](../api/results-and-streams.md#streams) of chatbot events (`message.started`, `message.delta`, tool events, `message.completed`). `session(id).messages().list()` reads the session, `session(id).delete()` deletes it.
+
+The session id is created by the chatbot. An application that wants one session per customer or per case stores the id with its own record.
+
+## Over HTTP
+
+With `http`, a chatbot is served on a platform HTTP server, under its `path`:
+
+| | |
+|---|---|
+| `POST /conversation` | Start a session |
+| `POST /conversation/:id` | Send a message |
+| `POST /conversation/:id/stream` | Send a message, answer as server-sent events |
+| `GET /conversation/:id` | The messages of the session |
+| `DELETE /conversation/:id` | Delete the session |
+| `POST /conversation/:id/file`, `GET /conversation/:id/file` | Upload and list files of the session |
+| `POST /conversation/:id/:messageid/reaction`, `GET /conversation/:id/reactions` | Feedback on answers: `like`, `dislike`, `report` |
+
+With `agui`, the same chatbot is also served as an AG-UI endpoint, for frontends that speak that protocol.
 
 ## Tools
 
-A chatbot can discover model-facing tools from Platform services. Prefer `tool(...)` handlers in your services:
+A chatbot may use the handlers that were marked as tools with [`tool(...)`](./tools.md#marked-tools-tool), selected by service and narrowed with `tags`, `include` or `exclude`. `toolPolicy` is the limit on top: `allowTags` and `denyTags`, `allowDestructive: false` to keep out every tool that changes data, and `requireConfirmation` to ask the person before a tool runs.
 
-```ts
-import { IntelligenceService, tool } from '@3flows/intelligence';
-import { Register, t } from '@3flows/intelligence/platform';
+Chatbot tools can't be scoped per call: they see what the model passes. A tool that must only return *this* customer's data belongs in a service that knows the customer. See [Act](../tutorial/act.md).
 
-@Register()
-export class SupportService extends IntelligenceService {
-  handlers = () => [
-    tool(
-      'lookupOrder',
-      t.object({ number: t.string() }),
-      t.object({ status: t.string() }),
-      async ({ number }, trigger) => trigger.ok({ status: `Order ${number} shipped` }),
-      { description: 'Look up an order by order number.', readOnly: true, tags: ['public'] }
-    )
-  ];
-}
-```
+## Where sessions are stored
 
-Then expose all eligible tools, selected tools, or tagged tools:
+Chatbots keep their records in the **`IntelligenceChatbot`** domain: profiles, sessions, messages, files and reactions. Register it next to the other domains:
 
 ```yaml
-tools:
-  - service: SupportService
-  - service: BillingService
-    include: [lookupInvoice]
-  - service: UiService
-    tags: [ui]
+entities:
+  backend: docs
+  domains:
+    - IntelligenceTrace
+    - IntelligenceChatbot
 ```
 
-`toolPolicy` can filter tags, block destructive tools, require confirmation, and bound tool rounds.
+These are the technical records of a conversation. They aren't the place for business data: what the application needs to keep, it stores itself.
 
-## AG-UI
+## Reviewer's view
 
-The `agui` block exposes a chatbot as an AG-UI HTTP/SSE endpoint. Intelligence maps AG-UI state, context, forwarded props, resume data, and form submissions into structured model-visible context. The frontend still owns rendering; models request typed UI through tools rather than emitting arbitrary HTML or JavaScript.
+A chatbot's YAML is its contract: the prompt, the tools, the server it's on. Check three things. **What may it do?** The tool list, and whether any tool on it changes data. **Who can reach it?** The HTTP server and its authentication. **What is kept?** Sessions hold what people typed; decide who deletes them, and when.
 
-## Compatibility with old conversations
-
-The word `conversation` still appears in HTTP compatibility routes, but it is not the old 0.8 internal model. Use `chatbots:` in YAML and chatbot domain records for durable sessions.
+:::caution Long sessions in 0.9.0-next.4
+In this version, a chatbot reads only the first ten stored messages of a session. See [Known gaps](../guides/known-gaps.md#chatbots-and-agents).
+:::

@@ -4,22 +4,96 @@ const sidebars = {
   intelligenceSidebar: [
     {
       type: 'category',
-      label: 'Start here: 0.9 building blocks',
+      label: 'Tutorial: A support desk',
       collapsed: false,
-      link: { type: 'doc', id: 'learning-path/index' },
+      link: { type: 'doc', id: 'tutorial/index' },
       items: [
-        'learning-path/ais',
-        'learning-path/inference',
-        'learning-path/chatbots',
-        'learning-path/agents-and-skills',
-        'learning-path/workflows'
+        {
+          type: 'category',
+          label: 'Part 1: Your first intelligent service',
+          collapsed: false,
+          items: [
+            'tutorial/setup',
+            'tutorial/intelligent-service',
+            'tutorial/anatomy-of-a-call',
+            'tutorial/prompts-as-configuration',
+            'tutorial/swap-and-test'
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Part 2: Turn language into data',
+          collapsed: false,
+          items: [
+            'tutorial/choose',
+            'tutorial/judge',
+            'tutorial/extract',
+            'tutorial/meaning-and-action'
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Part 3: Converse and act',
+          collapsed: false,
+          items: [
+            'tutorial/remember',
+            'tutorial/stream',
+            'tutorial/act'
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Part 4: Give it knowledge',
+          collapsed: false,
+          items: [
+            'tutorial/documents-as-context',
+            'tutorial/embeddings',
+            'tutorial/answer-from-knowledge',
+            'tutorial/rerank'
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Part 5: Quality and guardrails',
+          collapsed: false,
+          items: [
+            'tutorial/measure',
+            'tutorial/improve-with-evidence',
+            'tutorial/judge-the-answers',
+            'tutorial/guard-the-input',
+            'tutorial/guard-the-output',
+            'tutorial/humans-in-the-loop'
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Part 6: Run it in production',
+          collapsed: false,
+          items: [
+            'tutorial/the-right-model-for-each-job',
+            'tutorial/dont-block',
+            'tutorial/see-what-it-did',
+            'tutorial/going-live'
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Part 7: Chatbots, agents and workflows',
+          collapsed: false,
+          items: [
+            'tutorial/a-chatbot',
+            'tutorial/skills-and-agents',
+            'tutorial/workflows'
+          ]
+        },
+        'tutorial/whats-next'
       ]
     },
     'why',
     {
       type: 'category',
       label: 'Release 0.9',
-      collapsed: false,
+      collapsed: true,
       items: [
         'whats-new-0.9',
         'migration-0.8-to-0.9'
@@ -35,11 +109,11 @@ const sidebars = {
         'concepts/the-fluent-api',
         'concepts/context-and-prompts',
         'concepts/language-into-data',
+        'concepts/tools',
         'concepts/chatbots',
         'concepts/agents',
         'concepts/skills',
         'concepts/workflows',
-        'concepts/tools',
         'concepts/retrieval',
         'concepts/modalities',
         'concepts/responsibility'
@@ -83,7 +157,8 @@ const sidebars = {
         'configuration/overview',
         'configuration/ais',
         'configuration/prompts',
-        'configuration/conversations',
+        'configuration/chatbots',
+        'configuration/skills-and-agents',
         'configuration/tracers'
       ]
     }

@@ -11,12 +11,12 @@ A **modality** is a kind of content: text, audio, images, video, documents. Mode
 | From → to | Capability | Chain | Typical use |
 |---|---|---|---|
 | audio → text | `transcription` | `transcriber().withFile(audio).transcribe()` | voicemails, call recordings, dictation |
-| text → audio | `speech` | `speech().voice('alloy').speak(text)` | phone bots, read-aloud, accessibility |
-| text → image | `image` | `image().size('1024x1024').generate(prompt)` | illustrations, product mock-ups |
-| text → video | `video` | `video().duration(5).generate(prompt)` | short clips |
+| text → audio | `speech` | `speech().voice('alloy').text(text).speak()` | phone bots, read-aloud, accessibility |
+| text → image | `image` | `image().size('1024x1024').description(prompt).generate()` | illustrations, product mock-ups |
+| text → video | `video` | `video().duration(5).description(prompt).generate()` | short clips |
 | document → text | `ocr` | `ocr().withFile(scan).read()` | scanned letters, receipts |
 | text → vector | `embedding` | `embedding().with(text).embed()` | search, similarity, clustering |
-| text → verdict | `moderation` | `moderation().check(text)` | safety screening |
+| text → verdict | `moderation` | `moderation().input(text).moderate()` | safety screening |
 
 Each capability is served by a model that has it. A typical `ais` section has one chat model and a few small specialists:
 
@@ -44,8 +44,8 @@ Modalities combine by passing results along. A voicemail becomes a ticket in thr
 const ai = trigger.context.inference();
 
 const { text } = await ai.transcriber().withBlob('voicemails', `${id}.mp3`).language('en').transcribe();
-const department = await ai.choice('department').oneOf(['billing', 'technical', 'sales']).with(text).ask('Which team?');
-const { audio } = await ai.speech().voice('alloy').speak(`Thanks for your message. The ${department.value} team will call you back.`);
+const department = await ai.choice('department').oneOf(['billing', 'technical', 'sales']).instructions('Which team?').state(text).decide();
+const { audio } = await ai.speech().voice('alloy').text(`Thanks for your message. The ${department.value} team will call you back.`).speak();
 ```
 
 Every step is an ordinary value: a string, a decision, a `Buffer`. Store them, test them, and look at them in a review like any other data.

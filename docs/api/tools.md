@@ -6,11 +6,11 @@ title: Tools
 
 Attach tools to [`chat()`](./chat.md), chatbots, and agents. When the model requests a call, Intelligence runs it, sends the result back and calls the model again, up to `.maxToolRounds(n)` rounds (default `3`). Concepts: [Tools](../concepts/tools.md).
 
-Tools require an AI with the `tools` capability. Fluent chat streaming supports tool/service-enabled chains through `InferenceStream`.
+Tools require an AI with the `tools` capability. They work with `.answer()` and with `.stream()`.
 
 ## Service handlers as tools
 
-Prefer `tool(...)` handlers for reusable model-facing metadata:
+A handler becomes a tool with `tool(...)`: it's `handler(...)` with a description for the model.
 
 ```ts
 import { IntelligenceService, tool } from '@3flows/intelligence';
@@ -24,13 +24,25 @@ class OrdersService extends IntelligenceService {
 }
 ```
 
-Then discover them from Fluent chat:
+| Option | Description |
+|---|---|
+| `name` | Tool name the model sees. Default: derived from service and method |
+| `description` | What the tool does and when to use it. Written for the model |
+| `readOnly` | The tool doesn't change anything |
+| `destructive` | The tool changes or deletes data. Policies can keep such tools out, or ask for a confirmation |
+| `requiresConfirmation` | A person must confirm before the tool runs |
+| `tags` | For selecting tools: `tags: [public]` |
+| `expose` | `false` hides the handler from tool discovery |
+
+A chain gets every tool of a service, or a selection:
 
 ```ts
 chat.toolsFrom('OrdersService')
+chat.toolsFrom('HelpCenterService', { tags: ['public'] })
+chat.toolsFrom('OrdersService', { include: ['lookupOrder'] })
 ```
 
-You can still attach individual service handlers explicitly:
+Any handler can also be offered as a tool directly, whether it's marked or not:
 
 ```ts
 chat.service('OrdersService', 'lookupOrder')
@@ -69,19 +81,27 @@ chat.tools({
 | `parameters` | JSON schema of the arguments |
 | `execute(args, context?)` | Runs the tool. The return value is sent to the model as JSON |
 
-## Skills
+## Tools for chatbots and agents
 
-```ts
-chat.skills('orders')
+Chatbots and agents get their tools in YAML, by service and tag, from handlers marked with `tool(...)`:
+
+```yaml
+chatbots:
+  - name: shop
+    tools:
+      - service: HelpCenterService
+        tags: [public]
+    toolPolicy:
+      allowDestructive: false
 ```
 
-Attaches every tool of the configured skill `orders` (YAML `skills`). See [Tools and skills](../concepts/tools.md#skills).
+`include` and `exclude` narrow by handler name. A [skill](../concepts/skills.md) bundles such tool references with instructions, for agents. `toolPolicy` (chatbots) and `policy` (agents) filter by `allowTags` / `denyTags`, keep out tools marked `destructive`, and can require a confirmation before a tool runs.
 
 ## Results
 
 The final `AIChatResponse` is the model's last answer. Errors thrown by a tool don't fail the call: they're sent to the model as `{ "error": "…" }`, so it can react, for example by asking for a correct order number.
 
-Tool calls are recorded in trace records when trace/domain persistence is configured. Chatbots and agents also keep their own runtime records (messages, runs, events) separately from technical traces.
+With the `IntelligenceTrace` domain registered, tool executions are recorded with the run they belong to. See [Observability](../guides/observability.md).
 
 ## Limits
 

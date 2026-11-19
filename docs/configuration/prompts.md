@@ -50,11 +50,15 @@ A chain's system message is its `instructions`, then its prompts in the order of
 
 ## From code
 
-```ts
-const prompts = Intelligence.prompts();
+In a service, the catalog is in the trigger context:
 
-prompts.has('support.reply');                                              // true
-const rendered = await prompts.render({ name: 'support.reply', variables: { shop: 'Velo Bikes' } });
+```ts
+const prompts = trigger.context.prompts();
+
+prompts.prompt('support.reply').exists();                                             // true
+const rendered = await prompts.prompt('support.reply').variables({ shop: 'Velo Bikes' }).render();
 rendered.text;      // the rendered text
 rendered.version;   // 'v3'
+
+prompts.list();     // every prompt, with name, version and description
 ```

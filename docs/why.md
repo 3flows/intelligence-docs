@@ -27,9 +27,9 @@ Every one of these is an ordinary feature of an ordinary service. What's differe
 ```ts
 const ai = trigger.context.inference();
 
-await ai.chat().instructions('You are a support agent.').with(ticket).ask('Draft a reply.');
-await ai.choice('department').oneOf(['billing', 'technical']).with(ticket.body).ask('Who handles this?');
-await ai.score('frustration').between(0, 10).with(ticket.body).ask('How frustrated is the customer?');
+await ai.chat().instructions('You are a support agent.').with(ticket).question('Draft a reply.').answer();
+await ai.choice('department').oneOf(['billing', 'technical']).instructions('Who handles this?').state(ticket.body).decide();
+await ai.score('frustration').between(0, 10).instructions('How frustrated is the customer?').state(ticket.body).decide();
 await ai.embedding().with(article.text).embed();
 ```
 
@@ -53,7 +53,7 @@ The biggest source of friction in AI features isn't the model. It's the glue: pr
 Intelligence removes that glue. `choice`, `check`, `score` and `extract` return typed values:
 
 ```ts
-const urgent = await ai.check('urgent').with(ticket.body).ask('Does this need an answer today?');
+const urgent = await ai.check('urgent').instructions('Does this need an answer today?').state(ticket.body).decide();
 
 urgent.value;       // true
 urgent.confidence;  // 0.85
@@ -82,18 +82,21 @@ The fluent API is written for the human who has to understand and approve the fe
 ```ts
 await trigger.context.inference()
     .chat()
-    .prompt('support.reply', { customer })
-    .toolsFrom('OrdersService')
-    .metadata({ purpose: 'support-reply', subjectType: 'ticket', subjectId: ticket.id })
-    .timeout(10_000)
-    .ask(message);
+    .prompt('support.chat', { shop: 'Velo' })
+    .messages(recent(history))
+    .with(ticket)
+    .tools(ordersOf(ticket, trigger.context))
+    .question(message)
+    .answer();
 ```
 
-Read top to bottom: a chat call for one ticket, the reviewed and versioned `support.reply` prompt, bounded operational metadata, a timeout, and model-facing tools discovered from one service. The agent writes the code. The human reads it, reviews it, and takes responsibility for it.
+Read top to bottom: a chat with the reviewed and versioned `support.chat` prompt, the conversation so far, the ticket as context, and exactly one thing the model may do on its own, which is look up this customer's orders. The agent writes the code. The human reads it, reviews it, and takes responsibility for it.
+
+The same holds one level up. A chatbot, an agent and its skills are a few lines of YAML that say what the assistant is, what it may use, and where its limits are. A workflow is a list of named steps. All of it is meant to be read.
 
 ## Production-hardened, and observable
 
-Every call goes through the same path: capability selection, retries, tracing and usage recording. Turn on a tracer in YAML and every chat, choice and tool call appears as a span. Configure the Intelligence trace/chatbot/agent domains and runtime records become queryable without mixing technical evidence with business state.
+Every call goes through the same path: capability selection, retries, tracing and recording. Turn on a tracer in YAML and every chat, choice and tool call appears as a span. Register the trace domain and every model call is a record you can query, with its tokens, its duration and the version of the prompt it used, kept apart from your business data.
 
 So when someone asks *"why did the assistant say that?"* or *"what did this cost last month?"*, there's an answer.
 
@@ -101,4 +104,4 @@ So when someone asks *"why did the assistant say that?"* or *"what did this cost
 
 We still need this layer. Not because calling a model is hard, but because owning an AI feature in production is.
 
-**See it for yourself:** the [learning path](./learning-path/index.md) introduces the current 0.9 building blocks in order: AIs, Fluent inference, chatbots, skills, agents and workflows. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).
+**See it for yourself:** the [tutorial](./tutorial/index.md) builds a support desk in seven parts: from a first question to an assistant that routes tickets, looks up orders and answers from the help center, then measures its own quality, guards its input and output, runs in production, and grows a chatbot, an agent and a workflow. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).

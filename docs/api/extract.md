@@ -18,8 +18,9 @@ const Triage = t.object({
 const triage = await Intelligence.inference()
     .extract('triage')
     .schema(Triage)
-    .with(ticket.body)
-    .ask('Extract the triage record for this ticket.');
+    .instructions('Extract the triage record for this ticket.')
+    .from(ticket.body)
+    .extract();
 
 triage.orderNumber;  // string | null, typed
 ```
@@ -31,10 +32,11 @@ In addition to the [shared methods](./overview.md#methods-shared-by-all-chains):
 | Method | Description |
 |---|---|
 | `.schema(schema: t.ZodType<R>, name?: string)` | The shape of the answer. Changes the chain's result type to `R`. `name` overrides the schema name sent to the model |
+| `.from(input, meta?)` | What to extract from: text, an object, or a file. Like `.with(...)`, named for what it means here |
 
 ## Terminal verb
 
-### `.ask(prompt: string): Promise<T>`
+### `.extract(): Promise<T>`
 
 Resolves with the **value itself**, validated against the schema. Rejects if no schema was given, or if the model's answer doesn't match it.
 
@@ -55,8 +57,9 @@ Providers with native structured output (OpenAI, Azure) use strict JSON schema m
 const invoice = await Intelligence.inference()
     .extract('invoice')
     .schema(Invoice)
+    .instructions('Extract the invoice.')
     .withBlob('attachments', `${ticket.id}/invoice.txt`)
-    .ask('Extract the invoice.');
+    .extract();
 ```
 
 Text files are sent as text. For scanned documents, [`ocr()`](./audio-and-media.md#ocr) first, then extract from the text.

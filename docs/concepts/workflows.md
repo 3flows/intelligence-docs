@@ -1,125 +1,102 @@
+---
+title: Workflows
+---
+
 # Workflows
 
-Workflows are code-defined orchestration over Platform Flow. They give Intelligence apps a typed way to combine deterministic code, service calls, inference, agents, waits, branches, retries, timeouts, and reports.
+A **workflow** is a process written down as named steps. Your code decides the path, once; the model answers questions inside a step.
 
-Use a workflow when the shape of the business process is known and should be observable. Use an agent when the model should decide how to pursue a task.
-
-## Define a workflow
+It's the counterpart to an [agent](./agents.md), where the model chooses the next step. Use a workflow when you can write the process down: *load the ticket, triage it, route it, and if a person has to take over, prepare a brief.*
 
 ```ts
 import { workflow } from '@3flows/intelligence';
 
-export const triageWorkflow = workflow('support.triage')
-  .input<{ text: string; ticketId: string }>()
-  .state<{ flags: string[] }>({ flags: [] })
-  .step('department', (s) =>
-    s.inference().choice('department')
-      .state(({ input }) => input.text)
-      .oneOf(['billing', 'shipping', 'technical'])
-      .define()
-  )
-  .step('draft', (s) =>
-    s.inference().chat()
-      .instructions('Draft a concise support reply.')
-      .question(({ input, steps }) => `${steps.department.value}: ${input.text}`)
-      .timeout('20s')
-      .define()
-  )
-  .returns(({ steps }) => ({
-    department: steps.department.value,
-    reply: steps.draft.text
-  }));
+export const intake = workflow('support.intake')
+    .input<{ ticketId: string }>()
+
+    .step('ticket', (s) => s
+        .map(({ input, context }) => context.doc().collection('tickets').by(input.ticketId).get<StoredTicket>())
+        .define())
+
+    .step('triage', (s) => s
+        .map(({ steps, context }) => triage(context, steps.ticket))
+        .retry({ attempts: 2 })
+        .timeout('60s')
+        .define())
+
+    .when('needsPerson', ({ steps }) => steps.triage.departmentConfidence < 0.6)
+    .step('brief', (s) => s
+        .service('SupportService')
+        .method('prepareCase')
+        .input(({ input }: { input: { ticketId: string } }) => ({ ticketId: input.ticketId }))
+        .define())
+    .end()
+
+    .returns(({ steps }) => ({ department: steps.triage.department }));
 ```
 
-## Register and run
+## The parts
 
-Workflows run with a service context so steps can access Platform and Intelligence capabilities.
+| | |
+|---|---|
+| `workflow(name)` | Starts a definition. The name is how it's run |
+| `.input<T>()` | The type of the workflow's input |
+| `.step(name, (s) => … .define())` | One unit of work. The name appears in the report |
+| `.when(name, condition) … .end()` | A branch: its steps run only if the condition holds, and are `skipped` otherwise |
+| `.returns(fn)` | The workflow's result |
+
+A step gets a context with the workflow's **`input`**, the results of the steps before it in **`steps`** (typed), and the same **`context`** a handler has: `doc()`, `service()`, `inference()`, `agent()`.
+
+### Kinds of steps
+
+| Step | Does |
+|---|---|
+| `s.map(fn)` | Plain code |
+| `s.service(name).method(handler).input(…)` | Calls a service handler |
+| `s.inference().check(name)`, `.choice(name)`, `.score(name)`, `.extract(name)`, `.chat()` | One fluent call as a step |
+| `s.agent(name).task(…).input(…)` | Runs an agent and waits for its result |
+| `s.pipeline(name)` | Runs a platform pipeline |
+| `s.wait().event(name).correlate(…)` | Waits for something from outside, like an approval |
+
+Steps take **`.retry({ attempts })`** and **`.timeout('60s')`**. A retried step runs again from its start: retry what reads and decides, and think twice about what sends or pays.
+
+Workflows are built on the platform's [flows](https://3flows.github.io/platform-docs/docs/tutorial/flows): a workflow is a flow whose steps know about Intelligence.
+
+## Registering and running
+
+A workflow is registered once, by a service, and then run by name through the trigger context:
 
 ```ts
-import { IntelligenceService, handler } from '@3flows/intelligence';
-import { Register, t } from '@3flows/intelligence/platform';
-import { triageWorkflow } from './workflows.js';
-
 @Register()
 export class SupportService extends IntelligenceService {
-  private registered = false;
-
-  private ensureWorkflows() {
-    if (this.registered) return;
-    this.workflows().register(triageWorkflow);
-    this.registered = true;
-  }
-
-  handlers = () => [
-    handler('triage', t.object({ text: t.string() }), t.object({ department: t.string(), reply: t.string() }), async (input, trigger) => {
-      this.ensureWorkflows();
-      await trigger.ok(await trigger.context.workflow('support.triage').input(input).run());
-    })
-  ];
+    async setup(): Promise<void> {
+        this.workflows().register(intake);
+    }
 }
 ```
 
-## Step types
-
-| Step builder | What it does |
-| --- | --- |
-| `s.map(fn)` | Run arbitrary deterministic code in the workflow context |
-| `s.service(name).method(handler)` / `s.call(name)` | Call a Platform service handler |
-| `s.inference().chat()` | Run a Fluent chat call |
-| `s.inference().choice()` | Choose one or many options |
-| `s.inference().check()` | Return an accept/reject decision |
-| `s.inference().score()` | Score text against criteria |
-| `s.inference().extract()` | Extract structured data |
-| `s.inference().embedding()` | Create embeddings |
-| `s.inference().ocr()` | Run OCR |
-| `s.inference().moderation()` | Run moderation |
-| `s.inference().image()` | Generate images |
-| `s.inference().speech()` | Generate speech |
-| `s.agent(name)` | Start an agent task |
-| `s.pipeline(name)` | Call a Platform pipeline |
-| `s.wait()` | Wait for an external event/correlation |
-
-Most steps support `retry(...)` and `timeout(...)`.
-
-## Branches
-
 ```ts
-const wf = workflow('support.escalation')
-  .input<{ text: string }>()
-  .step('risk', (s) => s.inference().check('legal-risk').state(({ input }) => input.text).define())
-  .when('legalOnly', ({ steps }) => steps.risk.accepted)
-  .step('createCase', (s) => s.service('LegalService').method('createCase').input(({ input }) => input).define())
-  .end();
+const result = await trigger.context.workflow('support.intake').input({ ticketId }).run();
+
+const report = await trigger.context.workflow('support.intake').input({ ticketId }).report();
+report.status;                 // 'succeeded' or 'failed'
+report.steps.triage.status;    // 'succeeded', 'failed' or 'skipped'
+report.output;                 // the result, when it succeeded
 ```
 
-If the condition is false, the branch steps are skipped in the report.
+- **`run()`** resolves with the workflow's result, and throws if a step failed.
+- **`report()`** doesn't throw for a failed step. It returns the status of the run and of every step, so a failure can become a state of your record instead of an exception.
 
-## Reports vs outputs
+`intake.describe()` returns the steps with their names and kinds: the process, as data, for a test or a diagram.
 
-`run()` returns the workflow output or throws if the workflow fails. `report()` returns the full Platform Flow report without throwing for workflow failures.
+## Calls, agents and workflows together
 
-```ts
-const output = await trigger.context.workflow('support.triage').input(input).run();
-const report = await trigger.context.workflow('support.triage').input(input).report();
-```
+They combine, and the usual shape is: a workflow outside, calls and agents inside its steps. The outer structure is then the most predictable one. Be as deterministic as the problem allows, and let the model choose only where choosing is the job.
 
-Use reports for dashboards, audits, retries, and tests that need step-level status.
+For many similar items (a thousand tickets to classify), use `inference().collection(items)` instead: a workflow is one process, a collection is one call many times.
 
-## Workflow context
+## Reviewer's view
 
-Every step resolver receives:
+The workflow file is the process, in the order it happens. Check the branch conditions, the retries, and what a failed step leaves behind.
 
-```ts
-type WorkflowStepContext = {
-  input: unknown;
-  state: unknown;
-  steps: Record<string, unknown>;
-  reports: Record<string, unknown>;
-  context: IntelligenceServiceContext;
-  metadata: Record<string, unknown>;
-  signal: AbortSignal;
-  workflow: { name: string; runId: string };
-};
-```
-
-`context` is the same enriched Intelligence service context used by handlers.
+The tutorial builds one in [Workflows](../tutorial/workflows.md).

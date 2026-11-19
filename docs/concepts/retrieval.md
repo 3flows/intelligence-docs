@@ -60,7 +60,7 @@ const ranked = await trigger.context.inference()
     .query(question)
     .with(passages, { text: (p) => p.text, id: (p) => p.id })
     .topK(3)
-    .rank();
+    .rerank();
 ```
 
 Reranking is optional. Add it when the right passage is usually among the results, but not at the top.
@@ -74,7 +74,8 @@ const answer = await trigger.context.inference()
     .chat()
     .prompt('support.answer-from-articles')
     .with(passages.map(({ id, text }) => ({ id, text })))
-    .ask(question);
+    .question(question)
+    .answer();
 ```
 
 And in the prompt, the rule that makes it trustworthy:

@@ -33,7 +33,7 @@ The tutorial's tests use a scripted provider for exactly this. See [Testing](../
 - run through `choice('department')`,
 - and counted: how many match?
 
-Run them when you change a prompt, a model or a provider. A model change without an evaluation is an untested change.
+Run them when you change a prompt, a model or a provider. A model change without an evaluation is an untested change. The tutorial's [Part 5](../tutorial/measure.md) builds evaluations for triage and for answers, and uses them to improve both.
 
 ## Humans in the loop
 
@@ -46,7 +46,7 @@ Not every decision should be automatic. A few shapes, from lightest to strongest
 
 ## Guardrails
 
-- **Moderation** screens content against safety categories before it reaches the model or the customer.
+- **Moderation** screens content against safety categories before it reaches the model or the customer. See [Guard the input](../tutorial/guard-the-input.md).
 - **Keep customer text in input.** Never concatenate it into instructions. See [Context and prompts](./context-and-prompts.md#why-keep-policy-and-data-apart).
 - **Scope tools to the caller.** A tool must check permissions itself; the model passes whatever the user typed.
 - **Validate decisions like input.** A `choice` is always one of its options; a free-text answer used as an id is not.
@@ -56,12 +56,12 @@ Not every decision should be automatic. A few shapes, from lightest to strongest
 In production, you need to answer *"why did it say that?"* and *"what does it cost?"*:
 
 - A **tracer** records every model call as a span with inputs and outputs. See [Observability](../guides/observability.md).
-- The **conversations ontology** records every inference run with tokens, latency, model and prompt versions, as queryable entities.
+- The **`IntelligenceTrace` domain** records every inference run and model call with tokens, duration, model and prompt versions, as queryable entities.
 - **Labels and metadata** on chains tie calls to your domain: `.labels('triage').metadata({ ticketId })`.
 
 ## Personal data
 
-AI features move personal data to new places: the model provider, the conversation store, the vector index, the traces. For each, know what's stored, where, and for how long.
+AI features move personal data to new places: the model provider, the stored chats and chatbot sessions, agent runs, the vector index, the traces. For each, know what's stored, where, and for how long.
 
 ## See also
 

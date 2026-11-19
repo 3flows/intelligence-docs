@@ -38,20 +38,46 @@ prompts:
 |---|---|
 | [`ais`](./ais.md) | The models: provider, model, connection, capabilities, defaults |
 | [`prompts`](./prompts.md) | The prompt catalog |
-| `chatbots` | Configured interactive assistants and session history |
-| `skills` | Reusable capability bundles for agents |
-| `agents` | Task/run harnesses with tools, policy, workspace, and transports |
-| `intelligence` | Validation and inference policy settings |
+| [`chatbots`](./chatbots.md) | Configured assistants with their own sessions |
+| [`skills` and `agents`](./skills-and-agents.md) | Agents, and the instructions and tools they work with |
 | [`tracers`](./tracers.md) | Where traces go |
+| `intelligence` | Validation and policy, see below |
+
+Workflows have no section: they're defined in code.
 
 ## Platform sections Intelligence uses
 
 | Section | Used for |
 |---|---|
-| `docs` + `entities` | App data plus Intelligence domains such as `IntelligenceTrace`, `IntelligenceChatbot`, and `IntelligenceAgent` |
-| `blobs` | `withBlob(...)` inputs, prompts with a blob `source`, chatbot/agent files, generated audio/images, and agent artifacts |
+| `docs` + `entities` | The Intelligence domains: `IntelligenceTrace` (every model call), `IntelligenceChatbot` (sessions), `IntelligenceAgent` (runs) |
+| `blobs` | `withBlob(...)` inputs, prompts with a blob `source`, files of chatbots and agents, generated audio and images you store |
 | `vectors` | Retrieval, with `embedding()` as the embedding function |
 | `mqs` | Running model calls in the background |
+
+```yaml
+entities:
+  backend: docs
+  domains:
+    - IntelligenceTrace
+    - IntelligenceChatbot   # with chatbots
+    - IntelligenceAgent     # with agents
+```
+
+## Validation and policy
+
+Intelligence validates its configuration at startup, and logs what it finds: an AI without `defaults` or without a `timeoutMs`, a prompt without a `version`, a chatbot or agent that refers to an AI, prompt or skill that doesn't exist, a chatbot with unbounded history, an API key written into the YAML, a missing domain.
+
+```yaml
+intelligence:
+  strict: true            # findings stop the start instead of being logged as warnings
+  inference:
+    require:
+      metadata: true      # every call must carry .metadata(...)
+      timeout: true       # every call must be bounded, by .timeout(...) or the AI's defaults
+    onViolation: warn     # warn, error or off
+```
+
+`Intelligence.inspect()` returns the version, the configured AIs, prompts and chatbots, and the findings of the last validation.
 
 ## Starting
 
@@ -64,7 +90,7 @@ import './services.js';
 await Intelligence.run('./intelligence.yml');
 ```
 
-`Intelligence.run(path)` is `Platform.run(path)` plus a log line; `Intelligence.shutdown()` stops the platform. Starting with `Platform.run` works too, as long as `@3flows/intelligence` is imported.
+`Intelligence.run(path)` starts the platform with the Intelligence sections prepared: it validates them, and mounts chatbots and agents on their HTTP servers. `Intelligence.shutdown()` stops it. Always start an Intelligence application with `Intelligence.run`, not with `Platform.run`.
 
 ## Secrets
 

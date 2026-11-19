@@ -1,214 +1,151 @@
-# What's new in Intelligence 0.9
+---
+title: What's new in 0.9
+---
 
-Intelligence 0.9 is a large architectural update from the published 0.8 line. Compared to `@3flows/intelligence@0.8.30`, the project is no longer organized around separate `models`, `embeddings`, `channels`, old `agents`, executable `skills`, and `signal`. It is a Platform-native AI foundation with three layers:
+# What's new in 0.9
 
-1. **Fluent inference** over configured `ais` for direct model calls and model capabilities.
-2. **Chatbots and agents** for interactive and task-oriented AI surfaces.
-3. **Workflows and domains** for durable business processes, runtime records, and traceability.
+This page compares `@3flows/intelligence@0.9.0-next.4` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
 
-## What changed from published 0.8.30
+0.9 isn't an update of 0.8: it's a different library with the same purpose. 0.8 was a framework of **channels, agents and skills**: a message came in through a channel, an agent with a personality answered it, and skills were classes that did the work. 0.9 is built around **calls**: a service asks a model for one thing, in one readable line, and everything larger (chatbots, agents, workflows) is built from that.
 
-The old and new package shapes are intentionally different:
+## At a glance
 
-| Area | 0.8.30 | 0.9 |
-| --- | --- | --- |
-| Model configuration | `models:` and `embeddings:` | unified `ais:` with capabilities and defaults |
-| Model API | `Model.chatCompletion(...)`, `structuredOutput(...)`, `Embedding` services | `trigger.context.inference()` Fluent chains |
-| User-facing chat | `channels:` such as `http-chat` routing to old agents | `chatbots:` with HTTP conversation compatibility and AG-UI |
-| Old agents | `agents[]` with `type: conversational`, `personality`, channel dispatch | run-based `agents:` with tasks, events, tools, policy, workspace, transports |
-| Skills | `Skill` subclasses with `tools()`, `do()`, `extract()`, `analyse()`, `classify()` | declarative `skills:` instructions/tools/policy; executable code is `tool(...)` handlers |
-| Runtime service API | abstract `IntelligenceService.handle(signal)`, `model()`, `embedding()`, `skill()` | handler-based services with `inference()`, `prompts()`, `skill()`, `agent()`, `workflow()` in context |
-| Orchestration | implicit in channels/agents/skills | explicit `workflow(...)` over Platform Flow |
-| Storage model | old model/conversation/tool entities and app-specific records | separate `IntelligenceTraceDomain`, `IntelligenceChatbotDomain`, `IntelligenceAgentDomain` |
-| Testing | app-local scripted shims | `@3flows/intelligence/testing` |
+| | 0.8 | 0.9 |
+|---|---|---|
+| Models | `models` and `embeddings` in YAML, one section each | One section, `ais`. Every model is an AI with capabilities |
+| Calling a model | `this.model().chatCompletion(messages, …)` | The fluent API: `inference().chat()…answer()` |
+| Structured answers | `invokeWithStructuredOutput(prompt, schema)` | `extract`, and the decisions `choice`, `check`, `score` |
+| Other capabilities | Chat and embeddings | Also reranking, transcription, speech, images, OCR, moderation |
+| Prompts | An agent's `personality`, and prompts inside skill classes | A catalog in YAML, `prompts`: named, versioned, with variables |
+| Chat for people | `channels` (`http-chat`) in front of a `conversational` agent | `chatbots` |
+| Agents | The thing that answers a channel | A model that works on a task in several steps, with tools and limits |
+| Skills | Classes with tools and structured outputs | Configuration: instructions and tool references |
+| Tools | `Tool` objects of a skill | Service handlers, marked with `tool(...)` |
+| Processes | In code, between channels, agents and skills | `workflow(...)`: named steps, with a report |
+| Services | `IntelligenceService` with `handle(signal)` | `IntelligenceService` with handlers; everything in `trigger.context` |
+| Records | Model and conversation records | Three domains: `IntelligenceTrace`, `IntelligenceChatbot`, `IntelligenceAgent` |
+| Tests | Mock the provider yourself | `@3flows/intelligence/testing`: a scripted provider, `runOffline` |
+| Platform | `@3flows/platform` 0.8 | `@3flows/platform` 0.9, pinned exactly |
 
-See the [0.8 to 0.9 migration guide](./migration-0.8-to-0.9.md) for concrete before/after examples.
+## New: the fluent API
 
-## Concept inventory
-
-| 0.9 concept | Status | Use it for |
-| --- | --- | --- |
-| `IntelligenceService` | Current | Platform services whose handlers can call `trigger.context.inference()`, `prompts()`, `skill()`, `agent()`, and `workflow()` |
-| Fluent inference | Current | `chat`, `stream`, `choice`, `check`, `score`, `extract`, `embedding`, `reranker`, `transcriber`, `speech`, `image`, `ocr`, `moderation`, and `collection` |
-| Chatbots | Current | Session-style interactive assistants with HTTP `/conversation` compatibility, files, reactions, tools, retrieval, schemas, AG-UI, and history windows |
-| Skills | Current | Reusable declarative capability bundles: instructions plus tools, used by agents and other harnesses |
-| Agents | Current | Model-powered task harnesses with runs, events, policy, tools, skills, workspaces, peer delegation, AG-UI, A2A-shaped cards, and MCP exposure |
-| Workflows | Current | Typed Platform Flow orchestration over inference, services, agents, pipeline calls, waits, branches, retry, timeout, reports, and outputs |
-| UI tools | Current | Typed model-requested UI specs such as forms, confirmations, pickers, tables, charts, progress, and detail panels |
-| Collection orchestration | Current | Fan-out/batch/filter/map/reduce inference work with concurrency, retry, cancellation, metadata, and settled results |
-| Inference policy | Current | Requiring metadata, timeouts, or abort signals for production model calls |
-| `IntelligenceTraceDomain` | Current | Durable best-effort technical model/tool trace records |
-| `IntelligenceChatbotDomain` | Current | Chatbot profiles, sessions, messages, files, and reactions |
-| `IntelligenceAgentDomain` | Current | Agent profiles, runs, steps, events, delegations, and workspace items |
-| Old `channels:` configuration | Removed | Model routing is now explicit through services, chatbots, agents, workflows, and tools. |
-| Old `http-chat` channel | Removed/replaced | Use `chatbots[].http`, `agents[].http`, AG-UI, or explicit Platform routes. |
-| Old/preview `conversations:` configuration | Removed/replaced | Use `chatbots:` plus `ChatbotSession` records. HTTP compatibility still uses the word `/conversation`. |
-| Old identities | Removed | Use Platform identity/auth/policy primitives. |
-| Old ontology entities | Removed/replaced | Use Platform docs/blobs/vectors/domains and Intelligence trace/chatbot/agent domains. |
-| Old coworkers/actor runtime | Removed/replaced | Use agents and peer delegation. |
-| Old `Channel → Agent → Skill` dispatch | Removed | Agents and skills are first-class configured primitives with different semantics. |
-| `models:` / `embeddings:` | Removed/replaced | Use unified `ais:` and Fluent `inference()` chains. |
-| 0.8 `Signal` service pattern | Removed/replaced | Use Platform handlers, runtime context, `AbortSignal`, timeouts, and workflows. |
-| `skillprompts` / `qualityprompts` | Removed | Use `prompts:`, chatbot/agent `instructions`, `skills:`, and explicit evaluator/check/score calls. |
-
-## Fluent inference expanded
-
-The low-level API now covers the common model capabilities directly:
+Every model capability is one chain: what you want, what it needs, a verb.
 
 ```ts
-const answer = await trigger.context
-  .inference()
-  .chat()
-  .model('gpt')
-  .instructions('Be concise.')
-  .metadata({ purpose: 'support', subjectType: 'ticket', subjectId: ticket.id })
-  .timeout(10_000)
-  .ask(ticket.text);
+const ai = trigger.context.inference();
+
+const reply = await ai.chat().prompt('support.reply').with(ticket).question('Draft a reply.').answer();
+
+const department = await ai.choice('department')
+    .oneOf(['billing', 'technical', 'sales'])
+    .instructions('Which team should handle this ticket?')
+    .state(ticket.body)
+    .decide();
+
+const facts = await ai.extract('facts').schema(Facts).from(ticket.body).extract();
 ```
 
-Streaming returns an `InferenceStream`. It is an async iterable and also exposes `completed`, `onSettled(...)`, `text()`, and `toReadable({ format: 'text' | 'sse' })`.
+- **Thirteen capabilities, one grammar**: `chat`, `extract`, `choice`, `check`, `score`, `embedding`, `reranker`, `transcriber`, `speech`, `image`, `video`, `ocr`, `moderation`.
+- **Decisions are typed values**: `department.value` is one of the three options, with a `confidence` and a `reason`.
+- **Every call can be bounded and tagged**: `.timeout(ms)`, `.signal(abortSignal)`, `.metadata({ subjectType, subjectId, purpose })`. A policy in YAML can require both.
+- **Streaming** returns an `InferenceStream`: iterable, and with `toReadable()`, `text()`, `completed` and `onSettled()`. Streams run tools.
+- **`collection(items)`** runs calls over many items with bounded concurrency, retries and cancellation.
 
-## Chatbots replaced internal conversations
+Start with [The fluent API](./concepts/the-fluent-api.md).
 
-Configure interactive assistants under top-level `chatbots:`:
+## New: `ais`, capabilities instead of vendors
+
+`models` and `embeddings` are one section. An AI has a provider, a model, a connection and defaults; what it can do is its **capabilities**. A chain asks for a capability, and YAML decides which AI has it.
 
 ```yaml
-chatbots:
-  - name: support
-    type: conversation
-    model: DEFAULT
-    instructions:
-      - Help customers with short, factual answers.
-    history:
-      maxMessages: 20
-    http:
-      path: /support
-    agui:
-      useHttp: api
-      path: /support/agui
-    tools:
-      - service: SupportService
+ais:
+  - name: DEFAULT
+    provider: openai
+    model: gpt-4.1-mini
+    connection:
+      apiKey: ${{ OPENAI_API_KEY }}
+    defaults:
+      timeoutMs: 30000
+      retry: { attempts: 3, backoffMs: 1000 }
 ```
 
-The external compatibility API can still use routes containing `/conversation`, but the durable records are now chatbot records (`ChatbotSession`, `ChatbotMessage`, `ChatbotFile`, `ChatbotReaction`).
+Providers: OpenAI and everything OpenAI-compatible (Groq, Ollama, LM Studio, …), Azure AI, Anthropic and TypeSafe. See [Capabilities and providers](./concepts/capabilities-and-providers.md).
 
-## Tools are Platform handlers with model metadata
+## New: prompts as configuration
 
-Use `tool(...)` when a handler should be discoverable by models:
+Policy is no longer a `personality` string or a method of a skill. It's a catalog in YAML, used with `.prompt(name, variables)`, and the version that was used is recorded with every call. See [`prompts`](./configuration/prompts.md).
 
-```ts
-import { IntelligenceService, tool } from '@3flows/intelligence';
-import { Register, t } from '@3flows/intelligence/platform';
+## New: chatbots
 
-@Register()
-export class SupportService extends IntelligenceService {
-  handlers = () => [
-    tool(
-      'lookupOrder',
-      t.object({ number: t.string() }),
-      t.object({ status: t.string() }),
-      async ({ number }, trigger) => trigger.ok({ status: `Order ${number} shipped` }),
-      { description: 'Look up the status of an order.', readOnly: true, tags: ['public'] }
-    )
-  ];
-}
-```
+A chatbot is a configured assistant with its own sessions: model, prompts, history window, tools and HTTP exposure in YAML. It replaces the `http-chat` channel with a `conversational` agent behind it, and keeps the `/conversation` route names. New in 0.9: streaming as server-sent events, an AG-UI endpoint, tools selected by service and tag with a `toolPolicy`, and the types `retrieval` and `structured`. See [Chatbots](./concepts/chatbots.md).
 
-Fluent chat, chatbots, agents, and MCP can discover that metadata from the service.
+## New: agents and skills, with a new meaning
 
-## Skills and agents are now first-class
+The words are the same as in 0.8. What they mean isn't.
 
-A skill is a reusable capability bundle. An agent is a model-powered harness that can apply skills, call service tools, keep workspace memory, emit run events, delegate to peers, and expose transports.
+- A 0.9 **agent** is a model that works on a task in several steps: it chooses the next tool, inside a policy. It has runs, events, optional working memory, and can ask other agents. See [Agents](./concepts/agents.md).
+- A 0.9 **skill** is configuration: instructions and tool references that an agent uses. It has no code. See [Skills](./concepts/skills.md).
 
-```yaml
-skills:
-  - name: order_resolution
-    instructions:
-      - Check the order before recommending an action.
-    tools:
-      - service: SupportService
+## New: tools are handlers
 
-agents:
-  - name: order_ops
-    model: DEFAULT
-    instructions:
-      - Resolve order issues step by step.
-    skills:
-      - order_resolution
-    tools:
-      - service: SupportService
-    policy:
-      requireConfirmation: true
-      allowDestructive: false
-      maxToolRounds: 4
-    workspace:
-      docs: agent-workspace
-      blobs: agent-artifacts
-      namespace: agents/order_ops
-      tools: true
-    http:
-      path: /agents/order_ops
-      useHttp: api
-```
+A tool is a service handler. Any handler can be offered to a model per call, with `.service(name, method)`. A handler meant for models is marked with `tool(...)`, which adds a description, tags and facts like `readOnly`; chatbots, agents and `.toolsFrom(service)` find marked tools by service and tag. See [Tools](./concepts/tools.md).
 
-From a service handler:
+## New: workflows
 
-```ts
-const run = await trigger.context
-  .agent('order_ops')
-  .task('Resolve the delivery problem for order A-1042.')
-  .input({ orderId: 'A-1042' })
-  .run();
-```
+A process is written down as named steps, with branches, retries and timeouts. Steps are code, service calls, fluent calls or agents. `report()` returns the status of every step. See [Workflows](./concepts/workflows.md).
 
-## Workflows orchestrate work
+## New: records in three domains
 
-Workflows are code-defined Platform Flow wrappers. Steps can call services, run inference, start agents, wait for events, call pipelines, branch, retry, and set timeouts.
+| Domain | Records |
+|---|---|
+| `IntelligenceTrace` | Every model call: runs, calls to providers with tokens and duration, inputs and outputs, tool executions |
+| `IntelligenceChatbot` | Chatbot sessions, messages, files, reactions |
+| `IntelligenceAgent` | Agent runs, steps, events, delegations, workspace items |
 
-```ts
-import { workflow } from '@3flows/intelligence';
+They're registered under `entities.domains`, and kept apart from each other and from your business data. `.metadata({ subjectType, subjectId })` links a model call to the record it was made for.
 
-export const triageWorkflow = workflow('support.triage')
-  .input<{ text: string }>()
-  .step('classify', (s) =>
-    s.inference().choice('department')
-      .state(({ input }) => input.text)
-      .oneOf(['billing', 'shipping', 'technical'])
-      .define()
-  )
-  .step('draft', (s) =>
-    s.inference().chat()
-      .instructions('Draft a short support reply.')
-      .question(({ input, steps }) => `${steps.classify.value}: ${input.text}`)
-      .define()
-  )
-  .returns(({ steps }) => ({ department: steps.classify.value, reply: steps.draft.text }));
-```
+## New: validation, inspection, testing
 
-Register the definition in the `workflows` service, then run it through an Intelligence service context:
+- **Startup validation** reports AIs without a timeout, prompts without a version, broken references and keys written into YAML. `intelligence.strict: true` turns findings into errors.
+- **`Intelligence.inspect()`** returns the version, the AIs, prompts and chatbots, and the findings.
+- **`@3flows/intelligence/testing`** has a scripted provider and `runOffline(yaml)`: the real configuration, no model, no key.
+- **`@3flows/intelligence/platform`** re-exports the platform, for applications that prefer one import.
 
-```ts
-this.workflows().register(triageWorkflow);
-const result = await trigger.context.workflow('support.triage').input({ text }).run();
-```
+## Removed
 
-## Observability and validation are stricter
+| Removed | Use instead |
+|---|---|
+| `models`, `embeddings` in YAML; `Model`, `Embedding` | `ais`; `inference()` |
+| `channels`: `http-chat`, `email`, `sms` | `chatbots` for chat. For email and other transports, a platform route or connector that calls a service |
+| `agents` with `type: conversational`, `observational`, `quality`; `personality` | `chatbots`; `agents` in the new sense; `check` and `score` for quality |
+| `Skill` classes, `scope`, `type: local` / `remote`, `RemoteSkill` | Service handlers marked with `tool(...)`; `skills` as configuration |
+| `Tool`, `StructuredOutput` | `tool(...)`; schemas with `extract` |
+| `Signal`, `IntelligenceService.handle(signal)` | Handlers and routes; `trigger.signal` for cancellation |
+| Error classes for input, output and upload validation | `inputValidation`, `outputValidation` and upload rules on a chatbot; your own checks in services |
 
-0.9 separates records deliberately:
+## If you used an earlier 0.9 preview
 
-- business data belongs in your own Platform docs/entities/domains,
-- chatbot sessions/messages belong in `IntelligenceChatbotDomain`,
-- agent runs/events/workspace indexes belong in `IntelligenceAgentDomain`,
-- model/tool technical traceability belongs in `IntelligenceTraceDomain`.
+The terminal verbs changed in `0.9.0-next.4`. Every chain now ends with a verb of its own, and takes its task from a method before it:
 
-Production apps should enable validation and inference policy:
+| Before | `0.9.0-next.4` |
+|---|---|
+| `chat()….ask(question)` | `chat()….question(question).answer()` |
+| `chat()….stream(question)` | `chat()….question(question).stream()` |
+| `choice(n).oneOf(o).with(data).ask(question)` | `choice(n).oneOf(o).instructions(question).state(data).decide()` |
+| `check(n).with(data).ask(question)` | `check(n).instructions(question).state(data).decide()` |
+| `score(n)….with(data).ask(question)` | `score(n)….instructions(question).state(data).decide()` |
+| `extract(n).schema(s).with(data).ask(question)` | `extract(n).schema(s).instructions(question).from(data).extract()` |
+| `reranker()….rank()` | `reranker()….rerank()` |
+| `moderation().check(text)` | `moderation().input(text).moderate()` |
+| `speech().speak(text)` | `speech().text(text).speak()` |
+| `image().generate(prompt)` | `image().description(prompt).generate()` |
+| `ocr()….read(prompt)` | `ocr()….guidance(prompt).read()` |
+| `conversations().conversation(id)` | `chat().messages(history)` with your own store, or a chatbot |
+| `conversations:` and `entities.ontologies` in YAML | `entities.domains` |
+| `InferenceRunEntity`, `ConversationMessageEntity` | `IntelligenceTraceDomain`; your own store, or `IntelligenceChatbotDomain` |
+| `Intelligence.prompts()`, `prompts().render({ name, variables })` | `trigger.context.prompts().prompt(name).variables(v).render()` |
+| A custom provider's `doChat(request)` | `doChat(chain)`, with `chain._request()` |
 
-```yaml
-intelligence:
-  strict: true
-  inference:
-    require:
-      metadata: true
-      timeout: true
-    onViolation: error
-```
+## Known gaps
+
+0.9 is a preview. What doesn't work yet is listed in [Known gaps](./guides/known-gaps.md).
