@@ -4,7 +4,7 @@ title: Known gaps
 
 # Known gaps
 
-This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.5`, and how to work around it. Mention a workaround in the reviewer's view when you use one.
+This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.6`, and how to work around it. Mention a workaround in the reviewer's view when you use one.
 
 ## Chatbots and agents
 
@@ -38,7 +38,7 @@ There's no evaluation API in the library. The samples have a small harness (`_sh
 
 ## Versions
 
-**Intelligence names the exact Platform version it needs.** `@3flows/intelligence@0.9.0-next.5` depends on `@3flows/platform@0.9.0-next.31`. An application that asks for another Platform version gets two Platforms in `node_modules`, and services registered in one aren't found by the other. Pin both.
+**Intelligence names the exact Platform version it needs.** `@3flows/intelligence@0.9.0-next.6` depends on `@3flows/platform@0.9.0-next.33`. An application that asks for another Platform version gets two Platforms in `node_modules`, and services registered in one aren't found by the other. Pin both.
 
 ## Local models
 

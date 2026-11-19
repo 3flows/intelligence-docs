@@ -4,7 +4,7 @@ title: What's new in 0.9
 
 # What's new in 0.9
 
-This page compares `@3flows/intelligence@0.9.0-next.5` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
+This page compares `@3flows/intelligence@0.9.0-next.6` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
 
 0.9 isn't an update of 0.8: it's a different library with the same purpose. 0.8 was a framework of **channels, agents and skills**: a message came in through a channel, an agent with a personality answered it, and skills were classes that did the work. 0.9 is built around **calls**: a service asks a model for one thing, in one readable line, and everything larger (chatbots, agents, workflows) is built from that.
 
