@@ -33,6 +33,9 @@ The console gets an agent of its own. It reads cases like the researcher, and it
       - console-ui
     peers:
       - agent: policy-advisor
+    delegation:
+      maxDepth: 1
+      maxChildRuns: 2
     policy:
       allowDestructive: false
       maxToolRounds: 4
