@@ -104,4 +104,4 @@ So when someone asks *"why did the assistant say that?"* or *"what did this cost
 
 We still need this layer. Not because calling a model is hard, but because owning an AI feature in production is.
 
-**See it for yourself:** the [tutorial](./tutorial/index.md) builds a support desk in seven parts: from a first question to an assistant that routes tickets, looks up orders and answers from the help center, then measures its own quality, guards its input and output, runs in production, and grows a chatbot, an agent and a workflow. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).
+**See it for yourself:** the [tutorial](./tutorial/index.md) builds a support desk in eight parts: from a first question to an assistant that routes tickets, looks up orders and answers from the help center, then measures its own quality, guards its input and output, runs in production, and grows a chatbot, agents that work together and with people, and a workflow. If you're new to language models, start with [Models for application developers](./concepts/models-for-developers.md).

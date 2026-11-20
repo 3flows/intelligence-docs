@@ -41,6 +41,44 @@ There are three types:
 | `retrieval` | A chat that answers from documents in `docs`, configured under `retrieval` |
 | `structured` | A chat whose answers match a JSON schema, configured under `responseSchema` |
 
+A retrieval chatbot searches documents in `docs` for every message and gives the model what it found; with `cite`, the answer names its sources:
+
+```yaml
+chatbots:
+  - name: policy
+    type: retrieval
+    model: DEFAULT
+    instructions:
+      - Answer from retrieved policy documents.
+    retrieval:
+      sources:
+        - docs: policies          # the collection; `doc` names the docs provider, if it isn't DEFAULT
+          textField: text
+          titleField: title
+      topK: 2
+      cite: true
+```
+
+This is a simple search over stored documents. For search by meaning, with embeddings and a reranker, build the retrieval in a service, as the tutorial does in [Part 4](../tutorial/embeddings.md), and offer it to a chatbot as a tool.
+
+A structured chatbot answers with an object instead of text. The answer is in `structuredOutput` of the response:
+
+```yaml
+chatbots:
+  - name: classifier
+    type: structured
+    model: DEFAULT
+    instructions:
+      - Classify inbound customer messages.
+    responseSchema:
+      name: CustomerMessageClassification
+      schema:
+        type: object
+        properties:
+          category: { type: string, enum: [billing, shipping, technical, other] }
+        required: [category]
+```
+
 ## Sessions
 
 A conversation with a chatbot is a **session**. Starting one returns its id and the greeting; every message is sent to a session:
@@ -72,7 +110,7 @@ With `http`, a chatbot is served on a platform HTTP server, under its `path`:
 | `POST /conversation/:id/file`, `GET /conversation/:id/file` | Upload and list files of the session |
 | `POST /conversation/:id/:messageid/reaction`, `GET /conversation/:id/reactions` | Feedback on answers: `like`, `dislike`, `report` |
 
-With `agui`, the same chatbot is also served as an AG-UI endpoint, for frontends that speak that protocol.
+With `agui`, the same chatbot is also served as an AG-UI endpoint, for frontends that speak that protocol. See [AG-UI and UI tools](./ag-ui-and-ui-tools.md).
 
 ## Tools
 

@@ -90,6 +90,16 @@ The words are the same as in 0.8. What they mean isn't.
 
 A tool is a service handler. Any handler can be offered to a model per call, with `.service(name, method)`. A handler meant for models is marked with `tool(...)`, which adds a description, tags and facts like `readOnly`; chatbots, agents and `.toolsFrom(service)` find marked tools by service and tag. See [Tools](./concepts/tools.md).
 
+## New: frontends, other assistants, and other agents
+
+- **AG-UI**: agents and chatbots are served to frontends as a stream of protocol events, with an `agui` block. The frontend's state reaches the model as context.
+- **UI tools**: twenty typed tools (`show_card`, `show_form`, `show_confirmation`, …) with which a model asks a frontend to render something, without writing markup.
+- **MCP**: a service's marked tools, and agents, are offered on a platform MCP server.
+- **Peers and cards**: an agent can ask other agents of the application, within limits; every agent has an A2A-shaped card and can be found by capability, skill or tag.
+- **Confirmation**: a tool marked `requiresConfirmation` makes a run wait for a person.
+
+See [AG-UI and UI tools](./concepts/ag-ui-and-ui-tools.md) and [Agents together](./concepts/agent-cards.md).
+
 ## New: workflows
 
 A process is written down as named steps, with branches, retries and timeouts. Steps are code, service calls, fluent calls or agents. `report()` returns the status of every step. See [Workflows](./concepts/workflows.md).

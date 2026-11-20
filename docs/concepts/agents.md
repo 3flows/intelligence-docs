@@ -99,16 +99,20 @@ And the rule for tools holds here more than anywhere: the model fills in every a
 
 ## More than one agent
 
-An agent can ask another one. `peers` gives the model a tool for each peer (`ask_flight_specialist`); calling it starts a run of that agent and returns its result. `delegation` bounds it: `maxDepth`, `maxChildRuns`, `allowCycles`.
+An agent can ask another one. `peers` gives the model a tool for each peer (`ask_policy_advisor`); calling it starts a run of that agent and returns its result. `delegation` bounds it. Every agent has a card that says what it's for, and agents can be found by it. See [Agents together](./agent-cards.md).
 
-```yaml
-agents:
-  - name: travel-planner
-    peers:
-      - agent: flight-specialist
-    delegation:
-      maxDepth: 2
+## Tools that need a yes
+
+A tool marked `requiresConfirmation` doesn't run when an agent calls it. The run ends as `waiting`, with the pending call in `result.metadata.pendingInteractions`. A person decides; then the run is resumed with the confirmation, or stopped:
+
+```ts
+const run = trigger.context.agent('case-researcher').using(trigger.context).run(runId);
+
+await run.resume().context({ confirmedTools: ['send_return_label'] }).submit();   // yes: the agent works again, and the tool runs
+await run.reason('declined').stop();                                              // no
 ```
+
+A resumed run works on its task again from the start, now with the confirmation: keep what comes before the confirmed tool repeatable. The tutorial builds this in [Confirm before acting](../tutorial/confirm-before-acting.md).
 
 ## Working memory
 
@@ -119,7 +123,7 @@ With `workspace`, an agent can keep notes, facts and artifacts while it works, s
 | Block | Serves the agent as |
 |---|---|
 | `http` | Run routes under its `path`: `POST /runs`, `POST /runs/stream`, `GET /runs/:runId`, `GET /runs/:runId/events`, `POST /runs/:runId/resume`, `/steer`, `/stop`, and `GET /card` |
-| `agui` | An AG-UI endpoint, for frontends that speak that protocol |
+| `agui` | An AG-UI endpoint, for frontends that speak that protocol. See [AG-UI and UI tools](./ag-ui-and-ui-tools.md) |
 | `mcp` | Tools on a platform MCP server: `run_<agent>`, and tools for status, events, resume, steer and stop |
 
 ## Where runs are stored

@@ -42,7 +42,7 @@ Every chain starts with a capability and ends with a verb. Nothing is sent befor
 | `inference().image()` / `.video()` | `.generate()` | `{ images }` / `{ videos }` | [media](./audio-and-media.md) |
 | `inference().ocr()` | `.read()` | `{ text, pages? }` | [OCR](./audio-and-media.md#ocr) |
 | `inference().moderation()` | `.moderate()` | `{ flagged, results }` | [moderation](./moderation.md) |
-| `inference().collection(items)` | `.all()` / `.settled()` / `.reduce(…)`, after `.map(…)`, `.filter(…)`, `.batch(n)` | the results, per item | bounded fan-out: `.concurrency(n)`, `.retry(…)` |
+| `inference().collection(items)` | `.all()` / `.settled()` / `.reduce(…)`, after `.map(…)`, `.filter(…)`, `.batch(n)` | the results, per item | [collections](../concepts/collections.md) |
 
 Beyond single calls, the trigger context has:
 

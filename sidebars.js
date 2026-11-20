@@ -86,6 +86,17 @@ const sidebars = {
             'tutorial/workflows'
           ]
         },
+        {
+          type: 'category',
+          label: 'Part 8: Beyond one agent',
+          collapsed: false,
+          items: [
+            'tutorial/agents-together',
+            'tutorial/confirm-before-acting',
+            'tutorial/a-console',
+            'tutorial/many-at-once'
+          ]
+        },
         'tutorial/whats-next'
       ]
     },
@@ -114,6 +125,9 @@ const sidebars = {
         'concepts/agents',
         'concepts/skills',
         'concepts/workflows',
+        'concepts/agent-cards',
+        'concepts/ag-ui-and-ui-tools',
+        'concepts/collections',
         'concepts/retrieval',
         'concepts/modalities',
         'concepts/responsibility'

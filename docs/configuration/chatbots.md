@@ -41,7 +41,7 @@ chatbots:
 | `history` | What the model sees of a session: `maxMessages`, `maxTokens` |
 | `tools` | Tool references: `service`, narrowed by `tags`, `include`, `exclude`. Only handlers marked with `tool(...)` are found |
 | `toolPolicy` | `allowTags`, `denyTags`, `allowDestructive`, `requireConfirmation` |
-| `retrieval` | For `type: retrieval`: `sources` (`docs`, and optionally `doc`, `query`, `textField`, `titleField`, `idField`), `topK`, `cite` |
+| `retrieval` | For `type: retrieval`: `sources`, `topK`, `cite`. A source is a collection of documents: `docs` (the collection), and optionally `doc` (the docs provider, default `DEFAULT`), `query` (a filter), `textField`, `titleField`, `idField` |
 | `responseSchema` | For `type: structured`: `{ name?, schema }`, a JSON schema |
 | `inputValidation`, `outputValidation` | Reject messages or answers that fail the built-in text checks |
 | `allowedMimeTypes`, `secureFileUpload`, `useAV` | Rules for uploaded files |

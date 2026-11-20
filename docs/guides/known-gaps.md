@@ -12,6 +12,14 @@ This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.6`, an
 
 **A chatbot's tools can't be scoped per call.** They get what the model passes. Tools that must be limited to one user's data belong in a service that knows the user.
 
+## AG-UI
+
+**An agent's AG-UI stream has no `TOOL_CALL_ARGS` events.** The arguments of a tool call aren't sent to the frontend. *Workaround:* for UI tools, read the specification from `TOOL_CALL_RESULT`: a UI tool returns what it was given.
+
+**Every AG-UI request to an agent starts a new run.** A run that waits for a confirmation can't be continued over AG-UI. *Workaround:* resume it from a service (`agent(name).run(id).resume()`) or over the agent's HTTP routes (`POST /runs/:runId/resume`). Chatbots take confirmations from the `state` or `resume` of the next AG-UI request.
+
+**Peers and discovery are local.** An agent can ask agents of the same application. The cards are A2A-shaped, but there's no client for agents of other systems.
+
 ## Workflows
 
 **Value resolvers of service and agent steps aren't typed.** In `s.service(…).input(({ input }) => …)` and `s.agent(…).input(…)`, annotate the parameter: `({ input }: { input: Intake }) => …`. `s.map(...)` and the predicate of `when(...)` are typed.

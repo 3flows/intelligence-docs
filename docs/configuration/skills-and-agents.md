@@ -63,6 +63,40 @@ agents:
 | `a2a` | The agent's card: `discoverable`, `card` |
 | `metadata` | Free-form |
 
+## Over MCP
+
+Two things can be offered to assistants outside the application, on a platform MCP server (`mcps`).
+
+**A service's tools.** Of the handlers of a service listed under an MCP server, those marked with `tool(...)` are offered, with the name and description from `tool(...)`:
+
+```yaml
+mcps:
+  - name: help-center
+    port: 3003
+    basepath: /mcp
+    path: /help-center
+    services:
+      - name: HelpCenterService
+```
+
+**An agent.** With an `mcp` block, an agent becomes a set of tools on the MCP server named in `useMcp`: one to run it (`toolName`, by default `run_<agent>`), and `resume_`, `steer_`, `stop_`, `status_` and `events_<agent>` for its runs:
+
+```yaml
+agents:
+  - name: desk-assistant
+    mcp:
+      expose: true
+      useMcp: desk-agents
+      toolName: run_desk_assistant
+      description: Ask the desk assistant about a ticket.
+
+mcps:
+  - name: desk-agents
+    port: 3004
+    basepath: /mcp
+    path: /agents
+```
+
 ## Storage
 
 Runs, steps, events, delegations and workspace items are stored in the `IntelligenceAgent` domain:

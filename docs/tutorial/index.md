@@ -8,7 +8,7 @@ slug: /tutorial
 
 In this tutorial you build the support desk of Velo, a small bike shop. Customers write in. The desk drafts replies, routes and prioritizes tickets, chats with customers, looks up their orders and answers from the help center. Then you measure how good it is, improve it with evidence, put guardrails around it, and run it in production.
 
-The tutorial has seven parts. Each part answers one question and ends with something that works:
+The tutorial has eight parts. Each part answers one question and ends with something that works:
 
 | Part | Question | Result |
 |---|---|---|
@@ -19,6 +19,7 @@ The tutorial has seven parts. Each part answers one question and ends with somet
 | **5. Quality and guardrails** | How do we know it's good, and keep it good? | Quality as a number, and a person for everything uncertain |
 | **6. Run it in production** | How do we operate it? | Cheap, resilient, observable |
 | **7. Chatbots, agents and workflows** | What if one call isn't enough? | A public help chat, an agent that prepares cases, and the intake as a process |
+| **8. Beyond one agent** | How do agents work with each other, with people, and with a frontend? | Two agents, an approval, a console for the team, and a batch job |
 
 Every chapter follows the same pattern:
 
@@ -104,6 +105,15 @@ Up to here, every feature is a call: we decide what the model gets, and it answe
 | [26. A chatbot](./a-chatbot.md) | The website needs a help chat, and there's no ticket to attach it to | `chatbots`, `tool(...)` |
 | [27. Skills and agents](./skills-and-agents.md) | Whoever takes over a ticket starts with the same research | `skills`, `agents`, runs |
 | [28. Workflows](./workflows.md) | The intake of a ticket is a process hidden in a handler | `workflow(...)`, steps, reports |
+
+### Part 8: Beyond one agent
+
+| Chapter | Problem | Concept |
+|---|---|---|
+| [29. Agents that work together](./agents-together.md) | One agent does two jobs | `peers`, delegation, agent cards |
+| [30. Confirm before acting](./confirm-before-acting.md) | Some things a model must not decide alone | `requiresConfirmation`, waiting runs, `resume` |
+| [31. A console for the team](./a-console.md) | The team wants to see the assistant work, and see an order, not a paragraph | AG-UI, UI tools, MCP |
+| [32. Many at once](./many-at-once.md) | A policy changed, and hundreds of tickets must be triaged again | `collection(...)` |
 
 ## The samples
 

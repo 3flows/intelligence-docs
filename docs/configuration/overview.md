@@ -92,6 +92,20 @@ await Intelligence.run('./intelligence.yml');
 
 `Intelligence.run(path)` starts the platform with the Intelligence sections prepared: it validates them, and mounts chatbots and agents on their HTTP servers. `Intelligence.shutdown()` stops it. Always start an Intelligence application with `Intelligence.run`, not with `Platform.run`.
 
+## More than one runtime
+
+`Intelligence.run` starts the current platform runtime, and the static entry points (`Intelligence.inference()`, `Intelligence.chatbots()`, `Intelligence.inspect()`) use it. For tests that need a runtime of their own, or two applications in one process, the runtime can be chosen. These are the platform's functions, under the same names:
+
+| | |
+|---|---|
+| `Intelligence.create()` | A new, empty runtime |
+| `Intelligence.use(runtime)` | Make it the current one |
+| `Intelligence.runtime()` | The current one |
+| `Intelligence.withRuntime(runtime, fn)` | Run `fn` with `runtime` as the current one |
+| `Intelligence.shutdown(runtime?)` | Stop a runtime; by default the current one |
+
+Inside a service, none of this is needed: `trigger.context` belongs to the runtime the service runs in.
+
 ## Secrets
 
 Keys come from environment variables with `${{ NAME }}`, like every platform secret. An unset variable becomes `null`, so a missing `OPENAI_API_KEY` shows up as an authentication error on the first call, not at startup.

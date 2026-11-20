@@ -81,7 +81,9 @@ const journey = [
   { step: '24', label: 'Observability', to: '/docs/tutorial/see-what-it-did' },
   { step: '26', label: 'Chatbots', to: '/docs/tutorial/a-chatbot' },
   { step: '27', label: 'Agents', to: '/docs/tutorial/skills-and-agents' },
-  { step: '28', label: 'Workflows', to: '/docs/tutorial/workflows' }
+  { step: '28', label: 'Workflows', to: '/docs/tutorial/workflows' },
+  { step: '30', label: 'Approvals', to: '/docs/tutorial/confirm-before-acting' },
+  { step: '31', label: 'AG-UI', to: '/docs/tutorial/a-console' }
 ];
 
 function Hero() {
@@ -146,7 +148,7 @@ export default function Home() {
           <div className="container">
             <Heading as="h2" className={styles.center}>From a first question to an assistant you can measure, guard and operate</Heading>
             <p className={styles.center}>
-              One small support desk in seven parts, one new concept per chapter. Built on the 3flows Platform, so storage, queues and HTTP are already solved.
+              One small support desk in eight parts, one new concept per chapter. Built on the 3flows Platform, so storage, queues and HTTP are already solved.
             </p>
             <div className={styles.journey}>
               {journey.map(({ step, label, to }) => (

@@ -95,6 +95,8 @@ chatbots:
       allowDestructive: false
 ```
 
+Marked tools can also be served to assistants outside the application, over MCP: see [`skills` and `agents`](../configuration/skills-and-agents.md#over-mcp).
+
 `include` and `exclude` narrow by handler name. A [skill](../concepts/skills.md) bundles such tool references with instructions, for agents. `toolPolicy` (chatbots) and `policy` (agents) filter by `allowTags` / `denyTags`, keep out tools marked `destructive`, and can require a confirmation before a tool runs.
 
 ## Results

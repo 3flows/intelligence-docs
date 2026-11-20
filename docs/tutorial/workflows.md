@@ -230,4 +230,4 @@ test('a failing model fails the triage step after two attempts; the ticket keeps
 
 `intake.ts` is the file to read: it's the process, in the order it happens. Check the branch condition, the retry, and what a failed step leaves behind. A retried step runs again from its start: here, `triage` only reads and decides, so running it twice is safe. A step that sends an email or charges a card needs more thought before it gets a `retry`.
 
-[Sample: step 28](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/28-workflows) · Next: [What's next](./whats-next.md)
+[Sample: step 28](https://github.com/3flows/intelligence-samples/tree/main/support-desk/steps/28-workflows) · Next: [Agents that work together](./agents-together.md)
