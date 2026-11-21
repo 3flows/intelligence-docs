@@ -4,7 +4,7 @@ title: Known gaps
 
 # Known gaps
 
-This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.6`, and how to work around it. Mention a workaround in the reviewer's view when you use one.
+This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.7`, and how to work around it. Mention a workaround in the reviewer's view when you use one.
 
 ## Chatbots and agents
 
@@ -12,11 +12,7 @@ This page lists what doesn't work yet in `@3flows/intelligence@0.9.0-next.6`, an
 
 **A chatbot's tools can't be scoped per call.** They get what the model passes. Tools that must be limited to one user's data belong in a service that knows the user.
 
-## AG-UI
-
-**An agent's AG-UI stream has no `TOOL_CALL_ARGS` events.** The arguments of a tool call aren't sent to the frontend. *Workaround:* for UI tools, read the specification from `TOOL_CALL_RESULT`: a UI tool returns what it was given.
-
-**Every AG-UI request to an agent starts a new run.** A run that waits for a confirmation can't be continued over AG-UI. *Workaround:* resume it from a service (`agent(name).run(id).resume()`) or over the agent's HTTP routes (`POST /runs/:runId/resume`). Chatbots take confirmations from the `state` or `resume` of the next AG-UI request.
+## Agents
 
 **Peers and discovery are local.** An agent can ask agents of the same application. The cards are A2A-shaped, but there's no client for agents of other systems.
 
@@ -46,7 +42,7 @@ There's no evaluation API in the library. The samples have a small harness (`_sh
 
 ## Versions
 
-**Intelligence names the exact Platform version it needs.** `@3flows/intelligence@0.9.0-next.6` depends on `@3flows/platform@0.9.0-next.33`. An application that asks for another Platform version gets two Platforms in `node_modules`, and services registered in one aren't found by the other. Pin both.
+**Intelligence names the exact Platform version it needs.** `@3flows/intelligence@0.9.0-next.7` depends on `@3flows/platform@0.9.0`. An application that asks for another Platform version gets two Platforms in `node_modules`, and services registered in one aren't found by the other. Pin both.
 
 ## Local models
 

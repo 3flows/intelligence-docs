@@ -4,7 +4,7 @@ title: Migrating from 0.8 to 0.9
 
 # Migrating from 0.8 to 0.9
 
-This guide moves an application from `@3flows/intelligence@0.8.30` to `0.9.0-next.6`. What changed and why is in [What's new in 0.9](./whats-new-0.9.md).
+This guide moves an application from `@3flows/intelligence@0.8.30` to `0.9.0-next.7`. What changed and why is in [What's new in 0.9](./whats-new-0.9.md).
 
 There's no compatibility layer: the 0.8 building blocks (channels, conversational agents, skill classes, `Model`) don't exist in 0.9. A migration is a port, building block by building block. Every section below shows 0.8 on the left and 0.9 on the right, or 0.8 first and 0.9 after it.
 
@@ -33,8 +33,8 @@ Intelligence 0.9 runs on Platform 0.9, and names the exact Platform version it n
 
 ```json title="package.json"
 "dependencies": {
-    "@3flows/intelligence": "0.9.0-next.6",
-    "@3flows/platform": "0.9.0-next.33"
+    "@3flows/intelligence": "0.9.0-next.7",
+    "@3flows/platform": "0.9.0"
 }
 ```
 
@@ -94,6 +94,7 @@ ais:
 | `provider: generic-openai` | `provider: openai-compatible`, with `connection.baseUrl` |
 | Keys from the environment, like `OPENAI_API_KEY` | Named in YAML: `connection.apiKey: ${{ OPENAI_API_KEY }}` |
 | One model is chosen by name | An AI is chosen by **capability**; name one with `.model(name)` only where it matters |
+| `parameters.reasoningEffort` | `defaults.reasoningEffort`; `parameters.reasoningEffort` is still read |
 
 An AI named `DEFAULT` is used when a chain names none. Embedding models are found by their capability: `embedding()` needs no name. See [`ais`](./configuration/ais.md).
 
@@ -332,7 +333,7 @@ entities:
 | `channels[].parameters.auth` | Authentication of the platform HTTP server the chatbot is on |
 | `email` and `sms` channels | No chatbot transport. Receive the message in a platform route or connector, and call a service |
 
-The HTTP routes keep their names (`POST /conversation`, `POST /conversation/:id`, files, reactions), so a client of the 0.8 chat API has little to change. Test it against your client: this guide hasn't verified every field of every response.
+The HTTP routes keep their names (`POST /conversation`, `POST /conversation/:id`, files, reactions), so a client of the 0.8 chat API has little to change. File listings keep `originalFileName`, `storageContainer` and `storagePath` from 0.8.30; `fileName` is the sanitised name the file is stored under. Test it against your client: this guide hasn't verified every field of every response.
 
 **Not every conversational agent should become a chatbot.** A chatbot fits one person talking to one assistant. If your 0.8 agent worked on something your application owns (a ticket, a case), a service with `chat().messages(history)` fits better: the service adds the record to every turn, scopes the tools to the user, and checks the answer. The tutorial builds exactly that in [Remember](./tutorial/remember.md) and [Act](./tutorial/act.md), and a chatbot in [A chatbot](./tutorial/a-chatbot.md).
 

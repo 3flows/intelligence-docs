@@ -4,7 +4,7 @@ title: What's new in 0.9
 
 # What's new in 0.9
 
-This page compares `@3flows/intelligence@0.9.0-next.6` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
+This page compares `@3flows/intelligence@0.9.0-next.7` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
 
 0.9 isn't an update of 0.8: it's a different library with the same purpose. 0.8 was a framework of **channels, agents and skills**: a message came in through a channel, an agent with a personality answered it, and skills were classes that did the work. 0.9 is built around **calls**: a service asks a model for one thing, in one readable line, and everything larger (chatbots, agents, workflows) is built from that.
 
@@ -161,6 +161,16 @@ The terminal verbs changed in `0.9.0-next.4`. Every chain now ends with a verb o
 - Chatbots read the whole session. Before, only the first ten stored messages were read, so the model lost parts of a conversation after about four turns, and deleting a session left messages behind.
 - `agent(name).run(id).events()` returns every event of a run, not the first ten. Limits above ten for `maxSteps` and `maxChildRuns` are enforced.
 - A blocking agent `run()` records `tool.started` and `tool.completed` events, as `stream()` does.
+
+### Fixed and added in `0.9.0-next.7`
+
+- **Built on Platform `0.9.0`.** Pin `"@3flows/platform": "0.9.0"`.
+- **An agent's AG-UI stream carries tool arguments** (`TOOL_CALL_ARGS`). Before, a frontend had to read a UI tool's specification from the result.
+- **A waiting agent run is continued over AG-UI.** It ends with `outcome: { type: 'interrupt' }`, and a request with `resume: [{ interruptId, status }]` continues or stops it. Before, every AG-UI request started a new run. See [AG-UI and UI tools](./concepts/ag-ui-and-ui-tools.md#confirmations-interrupts-and-resume).
+- **`run(id).resume()….stream()`** continues a waiting run as a stream; `.submit()` stays the blocking form.
+- **A streamed agent run records `tool.started` once per call, with its arguments**, as a blocking run does. Before, the streamed event had no `args`.
+- **`reasoningEffort`** in `ais[].defaults`, as in 0.8.26 and later.
+- **Chatbot files keep `originalFileName`**, and file listings include `storageContainer` and `storagePath`, as in 0.8.30.
 
 ## Known gaps
 

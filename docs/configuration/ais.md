@@ -63,6 +63,7 @@ ais:
 |---|---|
 | `temperature`, `topP`, `seed` | Sampling |
 | `maxTokens`, `maxCompletionTokens` | Answer length |
+| `reasoningEffort` | For reasoning models: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`. Which values a model accepts is up to the provider. Sent by `openai-compatible` and `azureai` |
 | `timeoutMs` | Request timeout |
 | `retry.attempts`, `retry.backoffMs` | Retries for retryable failures: 408, 409, 425, 429 (except exhausted quota), 5xx, connection resets and timeouts |
 | `retry.escalation` | Wait times in seconds per retry, instead of a fixed `backoffMs`: `[1, 5, 15]` |

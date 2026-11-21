@@ -30,6 +30,7 @@ The console gets an agent of its own. It reads cases like the researcher, and it
       - The ticket they are looking at is in the context you get, as state.ticketId.
     skills:
       - case-research
+      - case-actions       # send_return_label: it waits for a yes, and the console asks for it
       - console-ui
     peers:
       - agent: policy-advisor
@@ -79,9 +80,11 @@ curl -N -X POST localhost:3002/desk-assistant -H 'Content-Type: application/json
 RUN_STARTED
 TEXT_MESSAGE_START
 TOOL_CALL_START      order_of_ticket
+TOOL_CALL_ARGS       { "ticketId": "5f0c…", "number": "A-1042" }
 TOOL_CALL_END
 TOOL_CALL_RESULT     { "number": "A-1042", "status": "shipped", … }
 TOOL_CALL_START      show_card
+TOOL_CALL_ARGS       { "title": "Order A-1042", "status": "success", … }
 TOOL_CALL_END
 TOOL_CALL_RESULT     { "title": "Order A-1042", "status": "success", … }
 TEXT_MESSAGE_CONTENT The order has shipped.
@@ -141,6 +144,42 @@ There are twenty of them:
 
 Offer the few your frontend can render. Every tool an agent has is one more thing it may choose.
 
+## A yes, in the console
+
+In [chapter 30](./confirm-before-acting.md) the case researcher wanted to send a return label, and waited. A colleague answered through a handler. In the console, the colleague is already there. So the desk assistant gets the same skill, `case-actions`, and with it `send_return_label`, which is marked `requiresConfirmation`.
+
+The colleague writes *"Send the customer a return label."* The assistant calls the tool. The tool doesn't run; the run ends, and its last event says why:
+
+```json
+{
+  "type": "RUN_FINISHED",
+  "outcome": {
+    "type": "interrupt",
+    "interrupts": [{
+      "id": "agent-run:7c1e…#0",
+      "reason": "tool_confirmation",
+      "message": "Confirmation is required before executing send_return_label.",
+      "metadata": { "agentRunId": "agent-run:7c1e…", "tool": "send_return_label", "arguments": { "ticketId": "5f0c…" } }
+    }]
+  }
+}
+```
+
+An **interrupt** is a question the run stopped on. The console shows it: *Send a return label for this ticket? Yes / No.* The answer is the next request, which carries no message, only the answer:
+
+```sh
+curl -N -X POST localhost:3002/desk-assistant -H 'Content-Type: application/json' -d '{
+  "threadId": "t1", "runId": "r2",
+  "resume": [{ "interruptId": "agent-run:7c1e…#0", "status": "resolved" }]
+}'
+```
+
+- **`resolved`** continues the same run. Exactly the tools of the answered interrupts are confirmed, and this time `send_return_label` runs.
+- **`cancelled`** stops the run. Nothing is sent, and the run ends with `outcome: { "type": "cancelled" }`.
+- **An interrupt is answered once.** A second answer gets a `RUN_ERROR`: the run isn't waiting any more.
+
+As in chapter 30, a continued run does its task again from the start, now with the confirmation. What it does before the confirmed tool must be safe to do twice: here it's reading.
+
 ## The same tools, for other assistants: MCP
 
 The console isn't the only place where someone wants to search Velo's help center. Colleagues use assistants of their own, in their editor or their desktop. Those speak **MCP**, and the platform can serve a service's tools as an MCP server:
@@ -175,34 +214,62 @@ curl localhost:3002/agents/desk-assistant/card
 A test is a frontend that reads the events:
 
 ```ts title="step.test.ts"
-/** One AG-UI run: what a frontend sends, and the events it gets back as server-sent events. */
-async function aguiRun(message: string, state: Record<string, unknown>): Promise<Array<Record<string, any>>> {
+/** What a frontend sends to the agent, and the events it gets back as server-sent events. */
+async function agui(body: Record<string, unknown>): Promise<Array<Record<string, any>>> {
     const response = await fetch(`${CONSOLE}/desk-assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId: 'thread-1', runId: 'run-1', state, messages: [{ id: 'm1', role: 'user', content: message }] })
+        body: JSON.stringify({ threadId: 'thread-1', ...body })
     });
     assert.equal(response.status, 200);
     return (await response.text()).split('\n').filter((line) => line.startsWith('data:')).map((line) => JSON.parse(line.slice(5)));
 }
 
-test('a UI tool hands its specification to the frontend: the card arrives as the result of show_card', async () => {
+/** One AG-UI run: a message of the colleague, and what the console knows as state. */
+const aguiRun = (message: string, state: Record<string, unknown>) =>
+    agui({ runId: 'run-1', state, messages: [{ id: 'm1', role: 'user', content: message }] });
+
+test('a UI tool hands its specification to the frontend: the card arrives as the arguments of show_card', async () => {
     const events = await aguiRun('Where is the order of this ticket?', { ticketId: id });
 
     const shown = events.find((event) => event.type === 'TOOL_CALL_START' && event.toolCallName === 'show_card')!;
-    const result = events.find((event) => event.type === 'TOOL_CALL_RESULT' && event.toolCallId === shown.toolCallId)!;
+    const args = events.find((event) => event.type === 'TOOL_CALL_ARGS' && event.toolCallId === shown.toolCallId)!;
     // highlight-next-line
-    assert.deepEqual(JSON.parse(result.content), card);
+    assert.deepEqual(JSON.parse(args.delta), card);
 });
+
+test('an action waits for a yes in the console: the run ends with an interrupt, and the answer continues it', async () => {
+    ScriptedAI.reset(sendsLabel(id));
+    const events = await aguiRun('Send the customer a return label.', { ticketId: id });
+
+    // The run didn't fail and didn't finish: it stopped on a question, with what it wants to do.
+    const { outcome } = events.at(-1)!;
+    assert.equal(outcome.type, 'interrupt');
+    const [interrupt] = outcome.interrupts;
+    assert.deepEqual([interrupt.metadata.tool, interrupt.metadata.arguments], ['send_return_label', { ticketId: id }]);
+    assert.deepEqual(await post(`${API}/returnLabel`, { ticketId: id }), { sent: false });
+
+    // The colleague clicks yes. The console answers the interrupt by its id, and the same run goes on.
+    // highlight-next-line
+    const resumed = await agui({ runId: 'run-2', resume: [{ interruptId: interrupt.id, status: 'resolved' }] });
+    assert.equal(resumed.at(-1)!.outcome.type, 'success');
+    assert.deepEqual(await post(`${API}/returnLabel`, { ticketId: id }), { sent: true });
+
+    // An interrupt is answered once.
+    const again = await agui({ runId: 'run-3', resume: [{ interruptId: interrupt.id, status: 'resolved' }] });
+    assert.equal(again.at(-1)!.type, 'RUN_ERROR');
+});
+
+test('a no stops the run, and nothing is sent', async () => { /* … status: 'cancelled' … */ });
 
 test('what the frontend knows reaches the model as context: the ticket on screen', async () => {
     await aguiRun('Where is the order of this ticket?', { ticketId: id });
 
     const [request] = ScriptedAI.requests;
     assert.match(JSON.stringify(request.inputs), new RegExp(id));
-    // Its tools: reading the case, asking the policy advisor, and the three things it may show. Nothing that acts.
+    // Its tools: reading the case, asking the policy advisor, the three things it may show, and one action, which waits for a yes.
     assert.deepEqual(request.tools?.map((tool) => tool.name).sort(), [
-        'ask_policy_advisor', 'chat_of_ticket', 'order_of_ticket', 'show_callout', 'show_card', 'show_key_value_list'
+        'ask_policy_advisor', 'chat_of_ticket', 'order_of_ticket', 'send_return_label', 'show_callout', 'show_card', 'show_key_value_list'
     ]);
 });
 
@@ -210,23 +277,17 @@ test('the help center is an MCP server: it offers the marked tool, and nothing e
 test('the same agent has run routes and a card over HTTP', async () => { /* … */ });
 ```
 
-:::caution Two limits in this version
-- **Read a UI tool's specification from `TOOL_CALL_RESULT`.** An agent's AG-UI stream doesn't carry the arguments of a tool call (`TOOL_CALL_ARGS`) yet.
-- **Every AG-UI request to an agent starts a new run.** A run that waits for a confirmation, as in [chapter 30](./confirm-before-acting.md), is continued with `resume` from a service or over the agent's HTTP routes, not over AG-UI.
-
-See [Known gaps](../guides/known-gaps.md#ag-ui).
-:::
-
 ## What you learned
 
 - **`agui` serves an agent (or a chatbot) to a frontend** as a stream of AG-UI events: text, tool calls, results.
 - **The frontend's `state` reaches the model as context.**
 - **UI tools let a model ask for UI** by filling in a typed specification. The frontend renders; the model never writes markup.
+- **A run that needs a yes ends with an interrupt.** The frontend answers it with `resume`, and the same run continues or stops.
 - **`mcps` serves a service's marked tools** to assistants outside the application.
 
 ## Reviewer's view
 
-> The team's console talks to a desk assistant over AG-UI. The assistant reads cases and shows orders as cards; it can't act. The help center search is also offered as an MCP server.
+> The team's console talks to a desk assistant over AG-UI. The assistant reads cases and shows orders as cards. It can do one thing for a customer, send a return label, and only after the colleague in the console said yes. The help center search is also offered as an MCP server.
 
 A second server and a third are two more ways in. Who can reach port 3002, and who 3003? The assistant reads any ticket whose id is in the state: the console must only send ids the colleague may see, and for stricter rules the tools check it themselves. And `state` comes from a browser. It's data for the model, but the model acts on it: treat it like any other input from outside.
 

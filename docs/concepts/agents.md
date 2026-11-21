@@ -112,6 +112,8 @@ await run.resume().context({ confirmedTools: ['send_return_label'] }).submit(); 
 await run.reason('declined').stop();                                              // no
 ```
 
+`run.resume()….stream()` continues the run as a stream of events, like `agent(name).task(…).stream()`.
+
 A resumed run works on its task again from the start, now with the confirmation: keep what comes before the confirmed tool repeatable. The tutorial builds this in [Confirm before acting](../tutorial/confirm-before-acting.md).
 
 ## Working memory
@@ -123,7 +125,7 @@ With `workspace`, an agent can keep notes, facts and artifacts while it works, s
 | Block | Serves the agent as |
 |---|---|
 | `http` | Run routes under its `path`: `POST /runs`, `POST /runs/stream`, `GET /runs/:runId`, `GET /runs/:runId/events`, `POST /runs/:runId/resume`, `/steer`, `/stop`, and `GET /card` |
-| `agui` | An AG-UI endpoint, for frontends that speak that protocol. See [AG-UI and UI tools](./ag-ui-and-ui-tools.md) |
+| `agui` | An AG-UI endpoint, for frontends that speak that protocol. A waiting run ends with an interrupt, and the frontend's answer continues it. See [AG-UI and UI tools](./ag-ui-and-ui-tools.md) |
 | `mcp` | Tools on a platform MCP server: `run_<agent>`, and tools for status, events, resume, steer and stop |
 
 ## Where runs are stored

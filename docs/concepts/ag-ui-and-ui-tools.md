@@ -93,10 +93,10 @@ skills:
         tags: [ui]
 ```
 
-In the event stream, the specification is the **result** of the tool call:
+In the event stream, the specification is the **arguments** of the tool call. The result repeats it, so the model sees that it was shown:
 
 ```json
-{ "type": "TOOL_CALL_RESULT", "toolCallId": "…", "content": "{\"title\":\"Order A-1042\",\"status\":\"success\"}" }
+{ "type": "TOOL_CALL_ARGS", "toolCallId": "…", "delta": "{\"title\":\"Order A-1042\",\"status\":\"success\"}" }
 ```
 
 ### The twenty UI tools
@@ -122,12 +122,36 @@ Every helper takes options to rename it, change its description or add tags: `ui
 
 What the user does with a form, a picker or a confirmation comes back with the frontend's next run request, in `state` or `resume`, and reaches the model as context.
 
+## Confirmations: interrupts and resume
+
+A tool marked `requiresConfirmation` doesn't run when an agent calls it. The run ends with an **interrupt**:
+
+```json
+{ "type": "RUN_FINISHED", "outcome": { "type": "interrupt", "interrupts": [
+  { "id": "agent-run:7c1e…#0", "reason": "tool_confirmation",
+    "metadata": { "agentRunId": "agent-run:7c1e…", "tool": "send_return_label", "arguments": { "ticketId": "5f0c…" } } }
+] } }
+```
+
+The frontend asks the user and answers with its next request, which needs no message:
+
+```json
+{ "threadId": "t1", "runId": "r2", "resume": [{ "interruptId": "agent-run:7c1e…#0", "status": "resolved" }] }
+```
+
+| Answer | What happens |
+|---|---|
+| `status: "resolved"` | The same agent run continues; the tools of the answered interrupts are confirmed |
+| `status: "resolved"` with `payload: false` or `{ "approved": false }` | As `cancelled` |
+| `status: "cancelled"` | The run is stopped; the stream ends with `outcome: { "type": "cancelled" }` |
+| An interrupt of a run that isn't waiting, or of another agent | `RUN_ERROR` |
+
+All entries of one request must answer interrupts of the same run. A continued run does its task again from the start, with the confirmation: see [Agents](./agents.md).
+
+Chatbots take confirmations differently: from `state.confirmedTools` or `resume` of the next turn, since a chatbot has turns, not runs.
+
 ## Reviewer's view
 
 Two questions. What can the model make the frontend show? Only what the specifications allow: no markup, no scripts; but the text in them is the model's, and may repeat whatever it read. And what does the frontend send back? `state` comes from a browser. It's data for the model, which then acts on it with its tools: tools that read by an id from the state must check that the user may see it.
 
 The tutorial builds a console with both in [A console for the team](../tutorial/a-console.md).
-
-:::caution In this version
-An agent's AG-UI stream doesn't carry `TOOL_CALL_ARGS` events. Read a UI tool's specification from `TOOL_CALL_RESULT`. See [Known gaps](../guides/known-gaps.md#ag-ui).
-:::
