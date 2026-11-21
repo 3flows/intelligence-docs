@@ -4,7 +4,7 @@ title: What's new in 0.9
 
 # What's new in 0.9
 
-This page compares `@3flows/intelligence@0.9.0-next.7` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
+This page compares `@3flows/intelligence@0.9.0` with the last 0.8 release, `0.8.30`. To move an application, see the [migration guide](./migration-0.8-to-0.9.md).
 
 0.9 isn't an update of 0.8: it's a different library with the same purpose. 0.8 was a framework of **channels, agents and skills**: a message came in through a channel, an agent with a personality answered it, and skills were classes that did the work. 0.9 is built around **calls**: a service asks a model for one thing, in one readable line, and everything larger (chatbots, agents, workflows) is built from that.
 
@@ -162,7 +162,7 @@ The terminal verbs changed in `0.9.0-next.4`. Every chain now ends with a verb o
 - `agent(name).run(id).events()` returns every event of a run, not the first ten. Limits above ten for `maxSteps` and `maxChildRuns` are enforced.
 - A blocking agent `run()` records `tool.started` and `tool.completed` events, as `stream()` does.
 
-### Fixed and added in `0.9.0-next.7`
+### Fixed and added since `0.9.0-next.6`, in `0.9.0`
 
 - **Built on Platform `0.9.0`.** Pin `"@3flows/platform": "0.9.0"`.
 - **An agent's AG-UI stream carries tool arguments** (`TOOL_CALL_ARGS`). Before, a frontend had to read a UI tool's specification from the result.
@@ -174,4 +174,4 @@ The terminal verbs changed in `0.9.0-next.4`. Every chain now ends with a verb o
 
 ## Known gaps
 
-0.9 is a preview. What doesn't work yet is listed in [Known gaps](./guides/known-gaps.md).
+What doesn't work yet is listed in [Known gaps](./guides/known-gaps.md).

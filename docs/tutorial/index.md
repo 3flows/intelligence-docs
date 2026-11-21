@@ -121,7 +121,7 @@ Every chapter has a complete project in the [intelligence-samples](https://githu
 
 - **Tests need no model and no key.** `yarn test` runs every step against a scripted model; chapter 4 explains how.
 - **Running a step** talks to a real model: OpenAI by default, or a [local model](../guides/local-models.md).
-- **Evaluations** (Part 5) need a real model too. The numbers in Part 5 come from runs against a local model in LM Studio. They were measured before the samples moved to `0.9.0-next.7` and haven't been re-run since: treat them as an illustration of the method, and expect your own numbers to differ.
+- **Evaluations** (Part 5) need a real model too. The numbers in Part 5 come from runs against a local model in LM Studio. They were measured on an earlier 0.9 preview and haven't been re-run since: treat them as an illustration of the method, and expect your own numbers to differ.
 
 Requirements: access to the 3flows repositories, a GitHub token with `read:packages`, and Node.js 24+ with Corepack. The [setup page](./setup.md) explains all three.
 
@@ -137,7 +137,7 @@ yarn step:01                       # a single step, with a real model
 ```
 
 :::note Versions
-The tutorial and its samples are written for `@3flows/intelligence@0.9.0-next.7`, on `@3flows/platform@0.9.0`. Both are pinned in the samples' `package.json`. Coming from 0.8? See [What's new in 0.9](../whats-new-0.9.md) and the [migration guide](../migration-0.8-to-0.9.md).
+The tutorial and its samples are written for `@3flows/intelligence@0.9.0`, on `@3flows/platform@0.9.0`. Both are pinned in the samples' `package.json`. Coming from 0.8? See [What's new in 0.9](../whats-new-0.9.md) and the [migration guide](../migration-0.8-to-0.9.md).
 :::
 
 Ready? To follow along in your own project, [set one up](./setup.md) first. Otherwise, start with [An intelligent service](./intelligent-service.md).

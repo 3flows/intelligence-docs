@@ -52,7 +52,7 @@ It's the [platform starter](https://3flows.github.io/platform-docs/docs/tutorial
     "test": "yarn build && node --test dist/*.test.js"
   },
   "dependencies": {
-    "@3flows/intelligence": "0.9.0-next.7",
+    "@3flows/intelligence": "0.9.0",
     "@3flows/platform": "0.9.0"
   },
   "devDependencies": {
@@ -62,7 +62,7 @@ It's the [platform starter](https://3flows.github.io/platform-docs/docs/tutorial
 }
 ```
 
-- `@3flows/intelligence` builds on `@3flows/platform`. Both are preview builds, pinned to exact versions. They belong together: an Intelligence build names the exact Platform version it needs, and an application must use that same version, so that there's exactly one Platform in `node_modules`. To move to a newer build, change both lines together.
+- `@3flows/intelligence` builds on `@3flows/platform`. Both are pinned to exact versions. They belong together: an Intelligence release names the exact Platform version it needs, and an application must use that same version, so that there's exactly one Platform in `node_modules`. To move to a newer build, change both lines together.
 - Everything else is the same as in the platform: `"type": "module"`, `packageManager`, and the `.yarnrc.yml` with the GitHub Packages scope.
 
 ### `.yarnrc.yml` and `tsconfig.json`
